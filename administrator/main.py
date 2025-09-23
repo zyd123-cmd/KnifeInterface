@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from app.routers import data_router  # 导入我们即将创建的路由
+from routers import data_router  # 导入我们即将创建的路由
+from config.config import settings
 
 # 创建FastAPI应用实例
 app = FastAPI(

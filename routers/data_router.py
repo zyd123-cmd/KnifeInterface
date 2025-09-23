@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import time
-from app.services.api_client import original_api_client
-from app.schemas.data_schemas import OriginalUserResponse, EnhancedUserResponse
-
+from administrator.services.api_client import original_api_client
+from administrator.schemas.data_schemas import OriginalUserResponse, EnhancedUserResponse
+from administrator.schemas.data_schemas import ReturnInfo,ReturnInfoListResponse,ReturnInfoCreate,ReturnInfoUpdate
 router = APIRouter()
 
 
@@ -61,3 +61,67 @@ async def api_status():
         "version": "1.0.0",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
+
+
+@router.get("/return_info/list", response_model=ReturnInfoListResponse)
+async def list_return_info(page: int = 1, size: int = 10):
+    """
+    获取还刀信息列表
+    """
+    try:
+        # 调用API客户端获取数据
+        result = original_api_client.get_return_info_list({
+            "page": page,
+            "size": size
+        })
+        return ReturnInfoListResponse(
+            list=[ReturnInfo(**item) for item in result.get("list", [])],
+            total=result.get("total", 0)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取还刀信息列表失败: {str(e)}")
+
+@router.post("/return_info", response_model=ReturnInfo)
+async def create_return_info(data: ReturnInfoCreate):
+    """
+    创建还刀信息
+    """
+    try:
+        # 调用实际后端服务
+        result = original_api_client.create_return_info(data)
+        return ReturnInfo(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建还刀信息失败: {str(e)}")
+
+@router.put("/return_info", response_model=ReturnInfo)
+async def update_return_info(data: ReturnInfoUpdate):
+    """
+    更新还刀信息
+    """
+    try:
+        result = original_api_client.update_return_info(data)
+        return ReturnInfo(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新还刀信息失败: {str(e)}")
+
+@router.delete("/return_info/{info_id}")
+async def delete_return_info(info_id: int):
+    """
+    删除还刀信息
+    """
+    try:
+        result = original_api_client.delete_return_info(info_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除还刀信息失败: {str(e)}")
+
+@router.get("/return_info/export")
+async def export_return_info():
+    """
+    导出还刀信息
+    """
+    try:
+        result = original_api_client.export_return_info()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导出还刀信息失败: {str(e)}")
