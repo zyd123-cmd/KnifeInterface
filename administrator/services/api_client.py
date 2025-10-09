@@ -40,9 +40,20 @@ class OriginalAPIClient:
             logger.error(f"获取用户帖子失败: {e}")
             raise
 
-    def get_return_info_list(self,params=None):
-        """"获取还刀列表"""
-        url=f"{self.base_url}/api/v1/return_info"
+    def get_return_info(self, info_id: int) -> Dict[str, Any]:
+        """查询还刀信息详情"""
+        url = f"{self.base_url}/api/v1/return_info/{info_id}"
+        try:
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"查询还刀信息详情失败: {e}")
+            raise
+
+    def get_return_info_list(self, params=None):
+        """获取还刀列表"""
+        url = f"{self.base_url}/api/v1/return_info"
         try:
             response = self.session.get(url, params=params, timeout=10)
             response.raise_for_status()
@@ -60,7 +71,7 @@ class OriginalAPIClient:
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"创建还刀信息失败: {e}")
-        pass
+            raise
 
     def update_return_info(self, data):
         """更新还刀信息"""
@@ -73,10 +84,9 @@ class OriginalAPIClient:
             logger.error(f"更新还刀信息失败: {e}")
             raise
 
-
     def delete_return_info(self, info_id):
         """删除还刀信息"""
-        url = f"{self.base_url}/api/v1/return_info{info_id}"
+        url = f"{self.base_url}/api/v1/return_info/{info_id}"
         try:
             response = self.session.delete(url, timeout=10)
             response.raise_for_status()
