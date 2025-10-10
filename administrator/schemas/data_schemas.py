@@ -16,3 +16,5 @@ class EnhancedUserResponse(BaseModel):
     account_status: str
     additional_data: dict
     processed_at: str
+
+

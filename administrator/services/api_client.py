@@ -1,6 +1,9 @@
+from turtledemo.penrose import start
+
 import requests
 import logging
 from typing import Dict, Any
+from config.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +18,9 @@ class OriginalAPIClient:
             "Content-Type": "application/json",
             "User-Agent": "Secondary-API-Wrapper/1.0"
         })
+
+
+
 
         if api_key:
             self.session.headers.update({"Authorization": f"Bearer {api_key}"})
@@ -40,8 +46,11 @@ class OriginalAPIClient:
             raise
 
 
+
 # 初始化API客户端（这里使用示例API，实际使用时请替换为你的真实API地址）
 original_api_client = OriginalAPIClient(
+
+    #真实api
     base_url="https://jsonplaceholder.typicode.com",
     api_key=None  # 如果有API密钥，请在此处填写
 )
