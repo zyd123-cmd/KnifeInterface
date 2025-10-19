@@ -1,6 +1,6 @@
 import requests
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class OriginalAPIClient:
     """封装对原始API的调用"""
 
-    def __init__(self, base_url: str, api_key: str = None):
+    def __init__(self, base_url: str, api_key: Optional[str] = None):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({
