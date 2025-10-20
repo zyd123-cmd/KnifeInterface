@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 import time
-from app.services.api_client import original_api_client
-from app.schemas.data_schemas import OriginalUserResponse, EnhancedUserResponse
+
+from administrator.services.api_client import original_api_client
+from administrator.schemas.data_schemas import EnhancedUserResponse, OriginalUserResponse
 
 router = APIRouter()
 
