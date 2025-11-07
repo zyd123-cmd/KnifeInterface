@@ -3,7 +3,12 @@ from typing import Optional
 
 # 导入所需的模块
 from auditor.services.api_client import OriginalAPIClient
-from auditor.schemas.data_schemas import StorageStatisticsResponse
+from auditor.schemas.data_schemas import (
+    StorageStatisticsResponse, 
+    ChartsResponse, 
+    TotalStockResponse,
+    WasteKnifeRecycleResponse
+)
 
 # 创建API客户端实例（需要配置实际的外部API地址）
 api_client = OriginalAPIClient(
@@ -78,3 +83,585 @@ async def get_storage_statistics(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取出入库统计数据失败: {str(e)}")
+
+
+@router.get("/export-stock-record", response_model=StorageStatisticsResponse, tags=["出入库统计"])
+async def export_stock_record(
+    start_time: Optional[str] = Query(None, alias="startTime", description="开始时间（YYYY-MM-DD HH:mm:ss）"),
+    end_time: Optional[str] = Query(None, alias="endTime", description="结束时间（YYYY-MM-DD HH:mm:ss）"),
+    record_status: Optional[int] = Query(None, alias="recordStatus", description="记录状态：0-取刀，1-还刀，2-收刀，3-暂存，4-完成，5-违规还刀"),
+    ranking_type: Optional[int] = Query(None, alias="rankingType", description="排名类型：0-按数量排序，1-按金额排序"),
+    order: Optional[int] = Query(None, description="排序顺序：0-从大到小（降序），1-从小到大（升序）")
+):
+    """
+    导出刀具耗材数据（出入库记录）
+    
+    功能：导出刀具的出入库记录数据，返回JSON格式
+    封装外部接口：/qw/knife/web/from/mes/record/exportStockRecord
+    
+    参数说明：
+    - startTime: 开始时间
+    - endTime: 结束时间
+    - recordStatus: 记录状态
+      * 0: 取刀
+      * 1: 还刀
+      * 2: 收刀
+      * 3: 暂存
+      * 4: 完成
+      * 5: 违规还刀
+    - rankingType: 排名类型
+      * 0: 按数量排序
+      * 1: 按金额排序
+    - order: 排序顺序
+      * 0: 从大到小（降序）
+      * 1: 从小到大（升序）
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 导出数据
+      * current: 当前页
+      * size: 每页数量
+      * total: 总记录数
+      * pages: 总页数
+      * records: 记录列表（包含完整的出入库信息）
+        - account: 用户名
+        - name: 用户名称
+        - brandName: 品牌名称
+        - brandCode: 品牌编码
+        - cutterType: 刀具类型
+        - cutterCode: 刀具型号
+        - specification: 规格
+        - quantity: 数量
+        - price: 单价
+        - oldPrice: 历史单价
+        - stockLoc: 库位号
+        - stockType: 库存类型（0:入库 1:出库）
+        - status: 业务状态
+        - cabinetName: 刀具柜名称
+        - cabinetCode: 刀具柜编码
+        - factoryName: 工厂名称
+        - workshopName: 车间名称
+        - operator: 操作人
+        - createTime: 创建时间
+        - updateTime: 更新时间
+        - detailsName: 操作详情
+        - remake: 备注
+        - 及其他字段...
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "startTime": start_time,
+            "endTime": end_time,
+            "recordStatus": record_status,
+            "rankingType": ranking_type,
+            "order": order
+        }
+        
+        # 调用API客户端方法获取导出数据
+        result = api_client.export_stock_record(params)
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导出出入库记录失败: {str(e)}")
+
+
+@router.get("/charts-lend-by-year", response_model=ChartsResponse, tags=["统计图表"])
+async def get_charts_lend_by_year():
+    """
+    获取全年取刀数量统计
+    
+    功能：查询全年（12个月）的取刀数量统计数据
+    封装外部接口：/qw/knife/web/from/mes/statistics/chartsLendByYear
+    
+    请求参数：
+    - 无
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 统计数据
+      * titleList: 月份标题列表 ["１月", "２月", ..., "１２月"]
+      * dataList: 对应的取刀数量列表 [150, 200, 180, ...]
+    
+    使用场景：
+    - 显示全年取刀数量趋势图
+    - 查找取刀高峰月份（前端通过 Math.max(dataList) 计算）
+    - 对比各月取刀数量
+    
+    示例响应：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": {
+        "titleList": ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+        "dataList": [150, 200, 180, 220, 190, 210, 230, 250, 240, 260, 270, 280]
+      }
+    }
+    ```
+    """
+    try:
+        # 调用API客户端方法获取数据
+        result = api_client.get_charts_lend_by_year()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取全年取刀数量统计失败: {str(e)}")
+
+
+@router.get("/charts-lend-price-by-year", response_model=ChartsResponse, tags=["统计图表"])
+async def get_charts_lend_price_by_year():
+    """
+    获取全年取刀金额统计
+    
+    功能：查询全年（12个月）的取刀金额统计数据
+    封装外部接口：/qw/knife/web/from/mes/statistics/chartsLendPriceByYear
+    
+    请求参数：
+    - 无
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 统计数据
+      * titleList: 月份标题列表 ["1月", "2月", ..., "12月"]
+      * dataList: 对应的取刀金额列表 [15000.50, 20000.00, ...]
+    
+    使用场景：
+    - 显示全年取刀金额趋势图
+    - 查找金额高峰月份（前端通过 Math.max(dataList) 计算）
+    - 对比各月取刀成本
+    - 计算全年总金额（前端通过 dataList.reduce((a,b)=>a+b) 计算）
+    
+    示例响应：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": {
+        "titleList": ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+        "dataList": [15000.50, 20000.00, 18000.75, 22000.30, 19000.60, 21000.00, 23000.50, 25000.00, 24000.80, 26000.90, 27000.40, 28000.20]
+      }
+    }
+    ```
+    """
+    try:
+        # 调用API客户端方法获取数据
+        result = api_client.get_charts_lend_price_by_year()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取全年取刀金额统计失败: {str(e)}")
+
+
+@router.get("/charts-accumulated", response_model=ChartsResponse, tags=["统计图表"])
+async def get_charts_accumulated():
+    """
+    获取刀具消耗统计
+    
+    功能：查询刀具的消耗统计数据，支持按刀具类型或统计指标展示
+    封装外部接口：/qw/knife/web/from/mes/statistics/chartsAccumulated
+    
+    请求参数：
+    - 无
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 统计数据
+      * titleList: 统计项标题列表（刀具类型或统计指标）
+      * dataList: 对应的数据列表
+    
+    数据展示方式：
+    
+    方式1 - 按刀具类型统计：
+    - titleList 包含：车刀片、铣刀、钻头、镑刀等刀具类型
+    - dataList 包含：各类刀具的累计消耗数量或使用次数
+    
+    方式2 - 按统计指标展示：
+    - titleList 包含：
+      * 累计使用次数：刀具被使用的总次数
+      * 累计使用时长：刀具累计工作时间
+      * 平均寿命：刀具平均使用寿命
+      * 更换次数：刀具被更换的次数
+      * 使用效率：刀具使用效率百分比
+    - dataList 包含：各指标对应的数值
+    
+    使用场景：
+    - 显示刀具消耗情况（按类型分类）
+    - 统计刀具使用效率（按指标分类）
+    - 分析刀具消耗趋势
+    - 为刀具采购提供数据支持
+    
+    示例响应 1 - 按刀具类型统计：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": {
+        "titleList": ["车刀片", "铣刀", "钻头", "镑刀", "丝锥"],
+        "dataList": [1500, 2000, 1800, 1200, 950]
+      }
+    }
+    ```
+    
+    示例响应 2 - 按统计指标展示：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": {
+        "titleList": [
+          "累计使用次数",
+          "累计使用时长(h)",
+          "平均寿命(h)",
+          "更换次数",
+          "使用效率(%)"
+        ],
+        "dataList": [1500, 3000, 120, 50, 85]
+      }
+    }
+    ```
+    
+    注意：请先调用接口查看实际返回的数据结构，以确定 titleList 和 dataList 的具体内容和展示方式。
+    """
+    try:
+        # 调用API客户端方法获取数据
+        result = api_client.get_charts_accumulated()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取刀具消耗统计失败: {str(e)}")
+
+
+@router.get("/total-stock", response_model=TotalStockResponse, tags=["总库存统计"])
+async def get_total_stock(
+    statistics_type: Optional[str] = Query(None, alias="statisticsType", description="统计类型"),
+    brand_name: Optional[str] = Query(None, alias="brandName", description="品牌名称"),
+    cabinet_code: Optional[str] = Query(None, alias="cabinetCode", description="刀柜编码"),
+    cutter_type: Optional[str] = Query(None, alias="cutterType", description="刀具类型"),
+    stock_status: Optional[int] = Query(None, alias="stockStatus", description="库位状态"),
+    current: Optional[int] = Query(1, ge=1, description="当前页"),
+    size: Optional[int] = Query(10, ge=1, le=100, description="每页数量")
+):
+    """
+    获取总库存统计列表（支持搜索和刷新）
+    
+    功能：查询刀柜库存统计数据，支持多条件搜索和列表刷新
+    封装外部接口：/qw/knife/web/from/mes/cabinetStock/stockLocTakeInfoList
+    
+    请求参数：
+    - statisticsType: 统计类型（可选）
+    - brandName: 品牌名称（可选）
+    - cabinetCode: 刀柜编码（可选）
+    - cutterType: 刀具类型（可选）
+    - stockStatus: 库位状态（可选）
+    - current: 当前页，默认1
+    - size: 每页数量，默认10
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 库存列表数据（数组格式）
+      * id: 主键id
+      * cabinetCode: 刀柜编码
+      * stockLoc: 库位号
+      * brandName: 品牌名称
+      * cutterCode: 刀具型号
+      * cutterType: 刀具类型
+      * specification: 规格
+      * locCapacity: 库位容量
+      * locSurplus: 剩余数量（货道库存）
+      * stockStatus: 库位状态
+      * price: 单价
+      * stockValue: 库存价值（后端计算：单价 * 剩余数量）
+      * cabinetSide: 柜子面
+      * warehouseInTime: 入库时间
+      * updateTime: 更新时间
+      * 及其他字段...
+    
+    使用场景：
+    1. **搜索功能**：根据统计类型、品牌名称、刀柜编码、刀具类型、库位状态进行查询
+    2. **刷新功能**：不带搜索条件，获取所有库存数据
+    3. **分页显示**：支持分页查询，适合前端表格展示
+    
+    示例请求 1 - 搜索（根据品牌名称和刀具类型）：
+    ```
+    GET /api/v1/auditor/total-stock?brandName=三菱&cutterType=车刀片&current=1&size=10
+    ```
+    
+    示例请求 2 - 刷新（获取所有数据）：
+    ```
+    GET /api/v1/auditor/total-stock?current=1&size=20
+    ```
+    
+    示例响应：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": [
+        {
+          "id": 1,
+          "cabinetCode": "CB001",
+          "stockLoc": "A01-01",
+          "brandName": "三菱",
+          "cutterCode": "CNMG120408",
+          "cutterType": "车刀片",
+          "specification": "CNMG120408-MA",
+          "locCapacity": 100,
+          "locSurplus": 75,
+          "stockStatus": 1,
+          "price": 25.50,
+          "stockValue": 1912.50,
+          "warehouseInTime": "2024-01-15 10:30:00",
+          "updateTime": "2024-11-04 14:20:00"
+        },
+        {
+          "id": 2,
+          "cabinetCode": "CB002",
+          "stockLoc": "A02-05",
+          "brandName": "京瓷",
+          "cutterCode": "WNMG080408",
+          "cutterType": "车刀片",
+          "specification": "WNMG080408-PM",
+          "locCapacity": 80,
+          "locSurplus": 60,
+          "stockStatus": 1,
+          "price": 18.00,
+          "stockValue": 1080.00,
+          "warehouseInTime": "2024-02-20 09:15:00",
+          "updateTime": "2024-11-04 14:25:00"
+        }
+      ]
+    }
+    ```
+    
+    注意：
+    1. 库存价值 (stockValue) 由后端自动计算：price * locSurplus
+    2. 如果外部接口路径不同，请联系外部系统提供正确的列表查询接口
+    3. 前端可以直接展示返回的数据，不需要额外处理
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "statisticsType": statistics_type,
+            "brandName": brand_name,
+            "cabinetCode": cabinet_code,
+            "cutterType": cutter_type,
+            "stockStatus": stock_status,
+            "current": current,
+            "size": size
+        }
+        
+        # 调用API客户端方法获取数据
+        result = api_client.get_total_stock_list(params)
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取总库存统计列表失败: {str(e)}")
+
+
+@router.get("/stock-location/{stock_id}", response_model=TotalStockResponse, tags=["总库存统计"])
+async def get_stock_location_detail(stock_id: int):
+    """
+    获取单个库位详情
+    
+    功能：根据库位主键查询单个库位的详细信息
+    封装外部接口：/qw/knife/web/from/mes/cabinetStock/stockLocTakeInfoById
+    
+    请求参数：
+    - stock_id: 刀柜货道主键（路径参数）
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 库位详细信息（包含所有字段）
+    
+    使用场景：
+    - 查看单个库位的完整信息
+    - 点击表格行查看详情
+    
+    示例请求：
+    ```
+    GET /api/v1/auditor/stock-location/123
+    ```
+    
+    示例响应：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": {
+        "id": 123,
+        "cabinetCode": "CB001",
+        "stockLoc": "A01-01",
+        "brandName": "三菱",
+        "brandCode": "MITSUBISHI",
+        "cutterCode": "CNMG120408",
+        "cutterType": "车刀片",
+        "specification": "CNMG120408-MA",
+        "locCapacity": 100,
+        "locSurplus": 75,
+        "stockNum": 75,
+        "stockStatus": 1,
+        "price": 25.50,
+        "stockValue": 1912.50,
+        "imageUrl": "https://example.com/images/cutter.jpg",
+        "warehouseInTime": "2024-01-15 10:30:00",
+        "updateTime": "2024-11-04 14:20:00",
+        "warningNum": 20,
+        "locType": 1,
+        "materialCode": "MAT001",
+        "materialType": "刀片",
+        "packQty": 10
+      }
+    }
+    ```
+    """
+    try:
+        # 调用API客户端方法获取数据
+        result = api_client.get_stock_location_by_id(stock_id)
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取库位详情失败: {str(e)}")
+
+
+@router.get("/waste-knife-recycle", response_model=WasteKnifeRecycleResponse, tags=["废刀回收统计"])
+async def get_waste_knife_recycle(
+    borrow_code: Optional[str] = Query(None, alias="borrowCode", description="还刀码"),
+    cabinet_code: Optional[str] = Query(None, alias="cabinetCode", description="刀柜编码"),
+    stock_loc: Optional[str] = Query(None, alias="stockLoc", description="刀柜库位号")
+):
+    """
+    获取废刀回收统计信息（收刀柜还刀信息）
+    
+    功能：查询收刀柜中的还刀信息，用于废刀回收统计和管理
+    封装外部接口：/qw/knife/web/from/mes/lend/getLendByStock
+    
+    请求参数（全部可选）：
+    - borrowCode: 还刀码
+    - cabinetCode: 刀柜编码
+    - stockLoc: 刀柜库位号
+    
+    返回数据：
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 还刀数据
+      * borrowStatus: 还刀状态（字符串）
+      * cabinetCode: 刀柜编码
+      * recordStatus: 记录状态：0-取刀，1-还刀，2-收刀，3-暂存
+      * list: 还刀详情列表
+        - id: 取刀主键
+        - borrowStatus: 还刀状态：0-修磨，1-报废，2-换线，3-错领
+        - borrowTime: 还刀时间
+        - borrowUserName: 还刀人
+        - brandName: 品牌名称
+        - cutterCode: 刀具型号
+        - cutterType: 刀具类型
+        - lendTime: 取刀时间
+        - lendUserName: 借刀人
+        - recordStatus: 记录状态
+        - specification: 规格
+        - stockLoc: 库位号
+    
+    使用场景：
+    1. **废刀回收统计**：查看所有报废刀具（borrowStatus=1）
+    2. **修磨管理**：查看需要修磨的刀具（borrowStatus=0）
+    3. **错领追踪**：查询错领刀具情况（borrowStatus=3）
+    4. **换线管理**：统计需要换线的刀具（borrowStatus=2）
+    
+    示例请求 1 - 查询指定刀柜的还刀信息：
+    ```
+    GET /api/v1/auditor/waste-knife-recycle?cabinetCode=CB001
+    ```
+    
+    示例请求 2 - 查询指定库位的还刀信息：
+    ```
+    GET /api/v1/auditor/waste-knife-recycle?cabinetCode=CB001&stockLoc=A01-01
+    ```
+    
+    示例响应：
+    ```json
+    {
+      "code": 200,
+      "msg": "查询成功",
+      "success": true,
+      "data": {
+        "borrowStatus": "",
+        "cabinetCode": "CB001",
+        "recordStatus": 2,
+        "list": [
+          {
+            "id": 123,
+            "borrowStatus": 1,
+            "borrowTime": "2024-11-04 10:30:00",
+            "borrowUserName": "张三",
+            "brandName": "三菱",
+            "cutterCode": "CNMG120408",
+            "cutterType": "车刀片",
+            "lendTime": "2024-11-01 08:00:00",
+            "lendUserName": "李四",
+            "recordStatus": 2,
+            "specification": "CNMG120408-MA",
+            "stockLoc": "A01-01"
+          },
+          {
+            "id": 124,
+            "borrowStatus": 0,
+            "borrowTime": "2024-11-04 11:15:00",
+            "borrowUserName": "王五",
+            "brandName": "京瓷",
+            "cutterCode": "WNMG080408",
+            "cutterType": "车刀片",
+            "lendTime": "2024-11-02 09:30:00",
+            "lendUserName": "赵六",
+            "recordStatus": 2,
+            "specification": "WNMG080408-PM",
+            "stockLoc": "A01-02"
+          }
+        ]
+      }
+    }
+    ```
+    
+    前端处理建议：
+    - 根据 borrowStatus 分类统计：
+      * 0-修磨：需要修磨的刀具数量
+      * 1-报废：废刀回收统计
+      * 2-换线：需要换线的刀具
+      * 3-错领：错领刀具追踪
+    - 计算各类型刀具的数量和占比
+    - 显示还刀时间、取刀时间以计算使用时长
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "borrowCode": borrow_code,
+            "cabinetCode": cabinet_code,
+            "stockLoc": stock_loc
+        }
+        
+        # 调用API客户端方法获取数据
+        result = api_client.get_waste_knife_recycle_info(params)
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取废刀回收统计信息失败: {str(e)}")
