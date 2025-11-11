@@ -1,1 +1,0 @@
-# lend_record/__init__.py

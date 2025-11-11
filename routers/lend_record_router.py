@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response, Body
 from typing import Optional, List
-from lend_record.schemas.data_schemas import (
+from auditor.schemas.data_schemas import (
     LendRecordResponse, 
     LendRecordListRequest,
     ExportLendRecordRequest,
@@ -10,9 +10,11 @@ from lend_record.schemas.data_schemas import (
     ReplenishRecordListRequest,
     StorageRecordResponse,
     StorageRecordListRequest,
-    PersonalStorageResponse
+    PersonalStorageResponse,
+    MakeAlarmResponse,
+    CabinetAlarmResponse
 )
-from lend_record.services.api_client import api_client
+from auditor.services.api_client import api_client
 import json
 
 router = APIRouter(prefix="/lend_record", tags=["领刀记录"])
@@ -217,5 +219,41 @@ async def get_personal_storage(
         PersonalStorageResponse: 个人暂存柜信息响应
     """
     result = api_client.get_personal_storage(cabinetCode=cabinet_code)
+    
+    return result
+
+@router.get("/make_alarm", response_model=MakeAlarmResponse)
+async def set_make_alarm(
+    cabinet_code: Optional[str] = Query(None, description="刀柜编码"),
+    alarm_value: Optional[int] = Query(None, description="告警值")
+):
+    """
+    设置取刀柜告警值
+    
+    Args:
+        cabinet_code: 刀柜编码
+        alarm_value: 告警值
+        
+    Returns:
+        MakeAlarmResponse: 设置告警值响应
+    """
+    result = api_client.set_make_alarm(cabinetCode=cabinet_code, alarmValue=alarm_value)
+    
+    return result
+
+@router.get("/get_make_alarm", response_model=CabinetAlarmResponse)
+async def get_make_alarm(
+    cabinet_code: Optional[str] = Query(None, description="刀柜编码")
+):
+    """
+    获取取刀柜告警值
+    
+    Args:
+        cabinet_code: 刀柜编码
+        
+    Returns:
+        CabinetAlarmResponse: 获取告警值响应
+    """
+    result = api_client.get_make_alarm(cabinetCode=cabinet_code)
     
     return result
