@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from app.routers import data_router  # 导入我们即将创建的路由
+from routers import data_router  # 导入我们即将创建的路由
+from administrator.routers import lend_record_router
 
 # 创建FastAPI应用实例
 app = FastAPI(
@@ -10,6 +11,7 @@ app = FastAPI(
 
 # 包含路由
 app.include_router(data_router.router, prefix="/api/v1", tags=["数据接口"])
+app.include_router(lend_record_router.router, prefix="/api/v1", tags=["借出记录"])
 
 # 根路径路由
 @app.get("/")
