@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, Query, Response
-from typing import Optional
+from fastapi import APIRouter, Depends, Query, Response, Body
+from typing import Optional, List
 from lend_record.schemas.data_schemas import (
     LendRecordResponse, 
     LendRecordListRequest,
-    ExportLendRecordRequest
+    ExportLendRecordRequest,
+    RestockRequest,
+    RestockResponse,
+    ReplenishRecordResponse,
+    ReplenishRecordListRequest,
+    StorageRecordResponse,
+    StorageRecordListRequest,
+    PersonalStorageResponse
 )
 from lend_record.services.api_client import api_client
 import json
@@ -100,3 +107,115 @@ async def export_lend_records(
             }, ensure_ascii=False),
             media_type="application/json"
         )
+
+@router.post("/restock", response_model=RestockResponse)
+async def restock_cabinet(
+    request: RestockRequest = Body(None, description="补货请求参数")
+):
+    """
+    刀柜补货接口
+    
+    Args:
+        request: 补货请求参数
+        
+    Returns:
+        RestockResponse: 补货结果响应
+    """
+    result = api_client.restock_cabinet(
+        cabinetCode=request.cabinetCode,
+        itemDtoList=[item.dict() for item in request.itemDtoList] if request.itemDtoList else None,
+        replenishDto=request.replenishDto
+    )
+    
+    return result
+
+@router.get("/replenish_list", response_model=ReplenishRecordResponse)
+async def get_replenish_record_list(
+    current: Optional[int] = Query(None, description="当前页"),
+    end_time: Optional[str] = Query(None, description="结束时间"),
+    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+    ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+    record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+    size: Optional[int] = Query(None, description="每页的数量"),
+    start_time: Optional[str] = Query(None, description="开始时间")
+):
+    """
+    获取补货记录列表
+    
+    Args:
+        current: 当前页
+        end_time: 结束时间
+        order: 顺序 0: 从大到小 1：从小到大
+        ranking_type: 0: 数量 1: 金额
+        record_status: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
+        size: 每页的数量
+        start_time: 开始时间
+        
+    Returns:
+        ReplenishRecordResponse: 补货记录列表响应
+    """
+    result = api_client.get_replenish_records(
+        current=current,
+        endTime=end_time,
+        order=order,
+        rankingType=ranking_type,
+        recordStatus=record_status,
+        size=size,
+        startTime=start_time
+    )
+    
+    return result
+
+@router.get("/storage_list", response_model=StorageRecordResponse)
+async def get_storage_record_list(
+    current: Optional[int] = Query(None, description="当前页"),
+    end_time: Optional[str] = Query(None, description="结束时间"),
+    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+    ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+    record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+    size: Optional[int] = Query(None, description="每页的数量"),
+    start_time: Optional[str] = Query(None, description="开始时间")
+):
+    """
+    获取公共暂存记录列表
+    
+    Args:
+        current: 当前页
+        end_time: 结束时间
+        order: 顺序 0: 从大到小 1：从小到大
+        ranking_type: 0: 数量 1: 金额
+        record_status: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
+        size: 每页的数量
+        start_time: 开始时间
+        
+    Returns:
+        StorageRecordResponse: 公共暂存记录列表响应
+    """
+    result = api_client.get_storage_records(
+        current=current,
+        endTime=end_time,
+        order=order,
+        rankingType=ranking_type,
+        recordStatus=record_status,
+        size=size,
+        startTime=start_time
+    )
+    
+    return result
+
+@router.get("/personal_storage", response_model=PersonalStorageResponse)
+async def get_personal_storage(
+    cabinet_code: Optional[str] = Query(None, description="刀柜编码")
+):
+    """
+    获取个人暂存柜信息
+    
+    Args:
+        cabinet_code: 刀柜编码
+        
+    Returns:
+        PersonalStorageResponse: 个人暂存柜信息响应
+    """
+    result = api_client.get_personal_storage(cabinetCode=cabinet_code)
+    
+    return result
