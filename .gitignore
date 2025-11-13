@@ -53,6 +53,10 @@ venv.bak/
 config/.env
 *.env
 
+# Token文件（敏感信息，禁止提交）
+token.txt
+*.token
+
 # 日志文件
 *.log
 logs/

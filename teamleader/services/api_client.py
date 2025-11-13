@@ -1,6 +1,8 @@
 import requests
 import logging
+import os
 from typing import Dict, Any, Optional
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +10,15 @@ logger = logging.getLogger(__name__)
 class TeamLeaderAPIClient:
     """封装班组长的原始API调用"""
 
-    def __init__(self, base_url: str, api_key: Optional[str] = None):
+    def __init__(self, base_url: str, api_key: Optional[str] = None, token_file: Optional[str] = None):
+        """
+        初始化API客户端
+        
+        参数：
+            base_url: API基础URL
+            api_key: API密钥（可选）
+            token_file: Token文件路径（可选），默认为项目根目录下token.txt
+        """
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({
@@ -16,8 +26,60 @@ class TeamLeaderAPIClient:
             "User-Agent": "TeamLeader-API-Wrapper/1.0"
         })
 
+        # 优先使用api_key参数
         if api_key:
             self.session.headers.update({"Authorization": f"Bearer {api_key}"})
+        # 其次尝试从文件读取token
+        elif token_file or os.path.exists("token.txt"):
+            token = self._load_token_from_file(token_file or "token.txt")
+            if token:
+                self.session.headers.update({"Authorization": f"Bearer {token}"})
+                logger.info("已从文件加载Token")
+            else:
+                logger.warning("无法加载Token，将使用无认证模式")
+
+    def _load_token_from_file(self, token_file: str) -> Optional[str]:
+        """
+        从文件读取Token
+        
+        参数：
+            token_file: Token文件路径
+        返回：
+            Token字符串，如果读取失败则返回None
+        """
+        try:
+            # 如果是相对路径，转换为绝对路径
+            if not os.path.isabs(token_file):
+                # 获取项目根目录（假设teamleader文件夹在项目根目录下）
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.dirname(os.path.dirname(current_dir))
+                token_file = os.path.join(project_root, token_file)
+            
+            # 读取token文件
+            with open(token_file, 'r', encoding='utf-8') as f:
+                token = f.read().strip()
+                if token:
+                    logger.info(f"成功从 {token_file} 读取Token")
+                    return token
+                else:
+                    logger.warning(f"Token文件 {token_file} 为空")
+                    return None
+        except FileNotFoundError:
+            logger.warning(f"Token文件 {token_file} 不存在")
+            return None
+        except Exception as e:
+            logger.error(f"读取Token文件失败: {e}")
+            return None
+    
+    def update_token(self, token: str):
+        """
+        更新Token
+        
+        参数：
+            token: 新的Token字符串
+        """
+        self.session.headers.update({"Authorization": f"Bearer {token}"})
+        logger.info("Token已更新")
 
     def get_cutter_list(self, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -1116,8 +1178,24 @@ class TeamLeaderAPIClient:
             }
 
 
-# 初始化API客户端（这里使用示例API，实际使用时请替换为你的真实API地址）
-teamleader_api_client = TeamLeaderAPIClient(
-    base_url="https://jsonplaceholder.typicode.com",
-    api_key=None  # 如果有API密钥,请在此处填写
-)
+# 初始化API客户端
+# 使用配置文件的设置
+try:
+    from config.config import settings
+    
+    # 优先使用环境变量ORIGINAL_API_KEY
+    # 其次尝试从token.txt文件读取
+    api_key = settings.ORIGINAL_API_KEY if settings.ORIGINAL_API_KEY else None
+    
+    teamleader_api_client = TeamLeaderAPIClient(
+        base_url=settings.ORIGINAL_API_BASE_URL,
+        api_key=api_key,
+        token_file=settings.TOKEN_FILE_PATH
+    )
+except ImportError:
+    # 如果无法导入配置，使用默认配置
+    teamleader_api_client = TeamLeaderAPIClient(
+        base_url="https://your-api-domain.com",  # 请替换为你的真实API地址
+        api_key=None,
+        token_file="token.txt"
+    )
