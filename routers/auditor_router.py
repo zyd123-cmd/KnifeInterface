@@ -2,18 +2,12 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 
 # 导入所需的模块
-from auditor.services.api_client import OriginalAPIClient
+from auditor.services.api_client import original_api_client as api_client
 from auditor.schemas.data_schemas import (
     StorageStatisticsResponse, 
     ChartsResponse, 
     TotalStockResponse,
     WasteKnifeRecycleResponse
-)
-
-# 创建API客户端实例（需要配置实际的外部API地址）
-api_client = OriginalAPIClient(
-    base_url="http://your-external-api-base-url",  # 请替换为实际的外部API基础地址
-    api_key=None  # 如果需要API密钥，请在此处配置
 )
 
 router = APIRouter()
