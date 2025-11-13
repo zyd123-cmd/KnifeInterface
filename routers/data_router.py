@@ -29,7 +29,7 @@ async def get_enhanced_user_data(user_id: int):
             "account_status": "active" if user_data.get("id", 0) % 2 == 0 else "inactive",
             "additional_data": {
                 "posts_count": len(user_posts),
-                "last_post_title": user_posts[0]["title"] if user_posts else None,
+                # "last_post_title": user_posts[0]["title"] if user_posts else None,
                 "processing_notes": "数据已成功封装和增强"
             },
             "processed_at": time.strftime("%Y-%m-%d %H:%M:%S")
