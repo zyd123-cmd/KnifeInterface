@@ -517,7 +517,7 @@ class OriginalAPIClient:
         """
         url = f"{self.base_url}/qw/knife/web/from/mes/record/lendList"
         
-        params = {
+        params: dict[str, Any] = {
             "current": page,
             "size": page_size
         }
