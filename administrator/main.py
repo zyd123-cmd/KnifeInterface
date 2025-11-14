@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from routers import data_router, lend_record_router  # 导入路由
+from routers import data_router  # 导入我们即将创建的路由
+from administrator.routers import lend_record_router
 
 # 创建FastAPI应用实例
 app = FastAPI(
@@ -10,7 +11,7 @@ app = FastAPI(
 
 # 包含路由
 app.include_router(data_router.router, prefix="/api/v1", tags=["数据接口"])
-app.include_router(lend_record_router.router)
+app.include_router(lend_record_router.router, prefix="/api/v1", tags=["借出记录"])
 
 # 根路径路由
 @app.get("/")
@@ -21,17 +22,3 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
-# 接口地址说明：
-# 1. 获取领刀记录列表: GET /lend_record/list
-# 2. 导出领刀记录: GET /lend_record/export
-# 3. 刀柜补货: POST /lend_record/restock
-# 4. 获取补货记录列表: GET /lend_record/replenish_list
-# 5. 获取公共暂存记录列表: GET /lend_record/storage_list
-# 6. 获取个人暂存柜信息: GET /lend_record/personal_storage
-# 7. 设置取刀柜告警值: GET /lend_record/make_alarm
-# 8. 获取取刀柜告警值: GET /lend_record/get_make_alarm
