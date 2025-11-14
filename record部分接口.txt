@@ -1,0 +1,19 @@
+# 接口地址说明：
+# 1. 获取领刀记录列表: GET /teamleader_lend_record/list
+# 2. 导出领刀记录: GET /teamleader_lend_record/export
+# 3. 刀柜补货: POST /teamleader_lend_record/restock
+# 4. 获取补货记录列表: GET /teamleader_lend_record/replenish_list
+# 5. 获取公共暂存记录列表: GET /teamleader_lend_record/storage_list
+# 6. 获取个人暂存柜信息: GET /teamleader_lend_record/personal_storage
+# 7. 设置取刀柜告警值: GET /teamleader_lend_record/make_alarm
+# 8. 获取取刀柜告警值: GET /teamleader_lend_record/get_make_alarm
+
+# 接口地址说明：
+# 1. 获取领刀记录列表: GET /auditor_lend_record/list
+# 2. 导出领刀记录: GET /auditor_lend_record/export
+# 3. 刀柜补货: POST /auditor_lend_record/restock
+# 4. 获取补货记录列表: GET /auditor_lend_record/replenish_list
+# 5. 获取公共暂存记录列表: GET /auditor_lend_record/storage_list
+# 6. 获取个人暂存柜信息: GET /auditor_lend_record/personal_storage
+# 7. 设置取刀柜告警值: GET /auditor_lend_record/make_alarm
+# 8. 获取取刀柜告警值: GET /auditor_lend_record/get_make_alarm
