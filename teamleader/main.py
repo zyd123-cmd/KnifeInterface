@@ -57,7 +57,7 @@ app = FastAPI(
 )
 
 # 包含路由
-app.include_router(teamleader_router, prefix="/api/v1")
+app.include_router(teamleader_router, prefix="")
 
 # 根路径路由
 @app.get("/", tags=["系统接口"], summary="服务根路径")
