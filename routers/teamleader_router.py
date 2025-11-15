@@ -30,13 +30,11 @@ from teamleader.schemas.data_schemas import (
     PreBatchPlugResponse,
     OnPreBatchPlugResponse,
     LendRecordResponse,
-    RestockRequest,
-    RestockResponse,
     ReplenishRecordResponse,
     StorageRecordResponse,
-    PersonalStorageResponse,
-    MakeAlarmResponse,
-    CabinetAlarmResponse
+    AlarmWarningResponse,
+    AlarmStatisticsResponse,
+    ThresholdSettingRequest
 )
 from teamleader.services.api_client import TeamLeaderAPIClient
 from config.config import settings
@@ -109,7 +107,7 @@ async def query_cutters(
     
     # 调用原始API
     try:
-        result = api_client.get_cutter_list(query_params.dict(exclude_none=False))
+        result = api_client.get_cutter_list(query_params.model_dump(exclude_none=False))
         
         # 检查响应状态
         if not result.get("success"):
@@ -198,7 +196,7 @@ async def create_cutter(request: CreateCutterRequest):
     
     # 调用原始API
     try:
-        result = api_client.create_cutter(request.dict())
+        result = api_client.create_cutter(request.model_dump())
         
         # 检查响应状态
         if not result.get("success"):
@@ -254,7 +252,7 @@ async def update_cutter(cutter_id: int, request: UpdateCutterRequest):
     # 调用原始API
     try:
         # 只传递非空字段
-        result = api_client.update_cutter(request.dict(exclude_none=True))
+        result = api_client.update_cutter(request.model_dump(exclude_none=True))
         
         # 检查响应状态
         if not result.get("success"):
@@ -390,7 +388,7 @@ async def query_brands(
     
     # 调用原始API
     try:
-        result = api_client.get_brand_list(query_params.dict(exclude_none=False))
+        result = api_client.get_brand_list(query_params.model_dump(exclude_none=False))
         
         # 检查响应状态
         if not result.get("success"):
@@ -445,7 +443,7 @@ async def create_brand(request: SubmitBrandRequest):
     
     # 调用原始API
     try:
-        result = api_client.submit_brand(request.dict())
+        result = api_client.submit_brand(request.model_dump())
         
         # 检查响应状态
         if not result.get("success"):
@@ -500,7 +498,7 @@ async def update_brand(brand_id: int, request: SubmitBrandRequest):
     
     # 调用原始API
     try:
-        result = api_client.submit_brand(request.dict())
+        result = api_client.submit_brand(request.model_dump())
         
         # 检查响应状态
         if not result.get("success"):
@@ -633,7 +631,7 @@ async def query_stock_put_cabinets(
     
     # 调用原始API
     try:
-        result = api_client.get_stock_put_list(query_params.dict(exclude_none=False))
+        result = api_client.get_stock_put_list(query_params.model_dump(exclude_none=False))
         
         # 检查响应状态
         if not result.get("success"):
@@ -788,7 +786,7 @@ async def get_stock_statistics(
     
     # 调用原始API
     try:
-        result = api_client.get_stock_statistical_num(query_params.dict(exclude_none=False))
+        result = api_client.get_stock_statistical_num(query_params.model_dump(exclude_none=False))
         
         # 检查响应状态
         if not result.get("success"):

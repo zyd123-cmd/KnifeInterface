@@ -187,7 +187,7 @@ async def create_lend_record(
     """
     try:
         # 调用API客户端方法创建借出记录
-        result = api_client.create_lend_record(lend_record.dict())
+        result = api_client.create_lend_record(lend_record.model_dump())
         return result
         
     except Exception as e:
@@ -204,7 +204,7 @@ async def batch_return_knife_heads(
         # 模拟当前用户信息
         current_user = {"employeeCode": "zhangsan"}
         # 调用API客户端方法处理批量归还
-        result = api_client.process_batch_return(request.dict())
+        result = api_client.process_batch_return(request.model_dump())
         return result
         
     except Exception as e:
@@ -221,7 +221,7 @@ async def temp_store_batch_return_knife_heads(
         # 模拟当前用户信息
         current_user = {"employeeCode": "zhangsan"}
         # 调用API客户端方法处理暂存刀头批量归还
-        result = api_client.process_temp_store_batch_return(request.dict())
+        result = api_client.process_temp_store_batch_return(request.model_dump())
         return result
         
     except Exception as e:
@@ -239,7 +239,7 @@ async def update_borrow_record(
         # 模拟当前用户信息
         current_user = {"employeeCode": "zhangsan"}
         # 调用API客户端方法更新借出记录
-        result = api_client.update_borrow_record_service(borrow_id, request.dict(), current_user)
+        result = api_client.update_borrow_record_service(borrow_id, request.model_dump(), current_user)
         return result
         
     except Exception as e:
@@ -256,7 +256,7 @@ async def return_knife_head(
         # 模拟当前用户信息
         current_user = {"employeeCode": "zhangsan"}
         # 调用API客户端方法处理归还
-        result = api_client.process_return_service(request.dict(), current_user)
+        result = api_client.process_return_service(request.model_dump(), current_user)
         return result
         
     except Exception as e:
@@ -274,7 +274,7 @@ async def temp_store_knife_head(
         # 使用请求中的借出人编码作为当前用户
         current_user = {"employeeCode": request.borrowerCode}
         # 调用API客户端方法处理暂存
-        result = api_client.process_temp_store_service(request.dict(), current_user)
+        result = api_client.process_temp_store_service(request.model_dump(), current_user)
         return result
         
     except Exception as e:
@@ -347,7 +347,7 @@ async def create_handle_lend_record(
     """
     try:
         # 调用API客户端方法创建刀柄借出记录
-        result = api_client.create_handle_lend_record(handle_record.dict())
+        result = api_client.create_handle_lend_record(handle_record.model_dump())
         return result
         
     except Exception as e:
@@ -365,7 +365,7 @@ async def update_handle_lend_record(
         # 模拟当前用户信息
         current_user = {"employeeCode": "zhangsan"}
         # 调用API客户端方法更新刀柄借出记录
-        result = api_client.update_handle_lend_record(handle_id, request.dict(), current_user)
+        result = api_client.update_handle_lend_record(handle_id, request.model_dump(), current_user)
         return result
         
     except Exception as e:
