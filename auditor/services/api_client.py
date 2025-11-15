@@ -488,9 +488,9 @@ class OriginalAPIClient:
                 "data": None
             }
 
-    # ==================== 领刀记录相关接口 ====================
+    # ==================== 系统记录相关接口 ====================
 
-    # 合并自 auditor_record 模块的领刀记录接口
+    # 合并自 auditor_record 模块的系统记录接口
     # 日期: 2025-11-15
     # 来源: auditor_record/services/api_client.py
 

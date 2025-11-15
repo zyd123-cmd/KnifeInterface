@@ -1180,7 +1180,7 @@ class TeamLeaderAPIClient:
 
 
 
-    # ==================== 合并自 teamleader_record 模块的API客户端 ====================
+    # ==================== 合并自 系统记录 模块的API客户端 ====================
     # 合并日期: 2025-11-15
     # 来源: teamleader_record/api_client.py
 

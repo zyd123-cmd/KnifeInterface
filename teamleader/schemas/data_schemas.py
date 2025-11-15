@@ -464,7 +464,7 @@ class OnPreBatchPlugResponse(BaseModel):
 
 
 
-# ==================== 合并自 teamleader_record 模块的模型 ====================
+# ==================== 合并自 系统记录 模块的模型 ====================
 # 合并日期: 2025-11-15
 # 来源: teamleader_record/data_schemas.py
 

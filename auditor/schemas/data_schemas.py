@@ -184,9 +184,9 @@ class WasteKnifeRecycleResponse(BaseModel):
     data: Optional[ReturnKnifeData] = None       # 还刀数据
 
 
-# ==================== 领刀记录相关模型 ====================
+# ==================== 系统记录相关模型 ====================
 
-# 合并自 auditor_record 模块的领刀记录模型
+# 合并自 auditor_record 模块的系统记录模型
 # 日期: 2025-11-15
 # 来源: auditor_record/schemas/data_schemas.py
 

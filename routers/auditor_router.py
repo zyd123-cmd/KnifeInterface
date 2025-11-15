@@ -677,9 +677,9 @@ async def get_waste_knife_recycle(
         raise HTTPException(status_code=500, detail=f"获取废刀回收统计信息失败: {str(e)}")
 
 
-# ==================== 领刀记录相关接口 ====================
+# ==================== 系统记录相关接口 ====================
 
-# 合并自 auditor_record 模块的领刀记录接口
+# 合并自 auditor_record 模块的系统记录接口
 # 日期: 2025-11-15
 # 来源: auditor_record/routers/lend_record_router.py
 
