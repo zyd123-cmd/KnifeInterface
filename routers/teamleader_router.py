@@ -8,7 +8,7 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from teamleader.schemas.data_schemas import (
-    CutterQueryParams, 
+    CutterQueryParams,
     CutterQueryResponse,
     CreateCutterRequest,
     CreateCutterResponse,
@@ -34,7 +34,16 @@ from teamleader.schemas.data_schemas import (
     StorageRecordResponse,
     AlarmWarningResponse,
     AlarmStatisticsResponse,
-    ThresholdSettingRequest
+    ThresholdSettingRequest,
+    # 新增统计接口模型
+    StorageStatisticsQueryParams,
+    StorageStatisticsResponse,
+    ExportStockRecordQueryParams,
+    ChartsResponse,
+    TotalStockQueryParams,
+    TotalStockResponse,
+    StockLocationDetailResponse,
+    WasteKnifeRecycleResponse
 )
 from teamleader.services.api_client import TeamLeaderAPIClient
 from config.config import settings
@@ -56,7 +65,7 @@ api_client = TeamLeaderAPIClient(base_url=settings.ORIGINAL_API_BASE_URL)
     summary="刀具耗材分页查询",
     description="""
     查询刀具耗材信息，支持多维度筛选和分页。
-    
+
     **支持的查询条件：**
     - 品牌名称：模糊查询
     - 刀具柜名称：模糊查询
@@ -65,7 +74,7 @@ api_client = TeamLeaderAPIClient(base_url=settings.ORIGINAL_API_BASE_URL)
     - 刀具类型：模糊查询
     - 刀具型号：模糊查询
     - 价格区间：最低价格和最高价格
-    
+
     **注意：**
     - 所有查询条件均为可选，不传递任何条件时返回全部数据
     - 价格区间可以只传最低价或最高价，也可以同时传递
@@ -73,16 +82,16 @@ api_client = TeamLeaderAPIClient(base_url=settings.ORIGINAL_API_BASE_URL)
     """
 )
 async def query_cutters(
-    brandName: Optional[str] = Query(None, description="品牌名称"),
-    cabinetName: Optional[str] = Query(None, description="刀具柜名称"),
-    createTime: Optional[str] = Query(None, description="创建时间（格式：YYYY-MM-DD HH:mm:ss）"),
-    createUser: Optional[int] = Query(None, description="创建人 ID"),
-    cutterType: Optional[str] = Query(None, description="刀具类型"),
-    cutterCode: Optional[str] = Query(None, description="刀具型号"),
-    minPrice: Optional[float] = Query(None, description="最低价格", ge=0),
-    maxPrice: Optional[float] = Query(None, description="最高价格", ge=0),
-    current: int = Query(1, description="当前页码", ge=1),
-    size: int = Query(10, description="每页数量", ge=1, le=100)
+        brandName: Optional[str] = Query(None, description="品牌名称"),
+        cabinetName: Optional[str] = Query(None, description="刀具柜名称"),
+        createTime: Optional[str] = Query(None, description="创建时间（格式：YYYY-MM-DD HH:mm:ss）"),
+        createUser: Optional[int] = Query(None, description="创建人 ID"),
+        cutterType: Optional[str] = Query(None, description="刀具类型"),
+        cutterCode: Optional[str] = Query(None, description="刀具型号"),
+        minPrice: Optional[float] = Query(None, description="最低价格", ge=0),
+        maxPrice: Optional[float] = Query(None, description="最高价格", ge=0),
+        current: int = Query(1, description="当前页码", ge=1),
+        size: int = Query(10, description="每页数量", ge=1, le=100)
 ):
     """
     刀具耗材分页查询接口
@@ -90,7 +99,7 @@ async def query_cutters(
     # 验证价格区间
     if minPrice is not None and maxPrice is not None and minPrice > maxPrice:
         raise HTTPException(status_code=400, detail="最低价格不能大于最高价格")
-    
+
     # 构建查询参数
     query_params = CutterQueryParams(
         brandName=brandName,
@@ -104,20 +113,20 @@ async def query_cutters(
         current=current,
         size=size
     )
-    
+
     # 调用原始API
     try:
         result = api_client.get_cutter_list(query_params.model_dump(exclude_none=False))
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "查询失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -134,16 +143,16 @@ async def query_cutters(
     """
 )
 async def search_cutters(
-    brandName: Optional[str] = Query(None, description="品牌名称"),
-    cabinetName: Optional[str] = Query(None, description="刀具柜名称"),
-    createTime: Optional[str] = Query(None, description="创建时间（格式：YYYY-MM-DD HH:mm:ss）"),
-    createUser: Optional[int] = Query(None, description="创建人 ID"),
-    cutterType: Optional[str] = Query(None, description="刀具类型"),
-    cutterCode: Optional[str] = Query(None, description="刀具型号"),
-    minPrice: Optional[float] = Query(None, description="最低价格", ge=0),
-    maxPrice: Optional[float] = Query(None, description="最高价格", ge=0),
-    current: int = Query(1, description="当前页码", ge=1),
-    size: int = Query(10, description="每页数量", ge=1, le=100)
+        brandName: Optional[str] = Query(None, description="品牌名称"),
+        cabinetName: Optional[str] = Query(None, description="刀具柜名称"),
+        createTime: Optional[str] = Query(None, description="创建时间（格式：YYYY-MM-DD HH:mm:ss）"),
+        createUser: Optional[int] = Query(None, description="创建人 ID"),
+        cutterType: Optional[str] = Query(None, description="刀具类型"),
+        cutterCode: Optional[str] = Query(None, description="刀具型号"),
+        minPrice: Optional[float] = Query(None, description="最低价格", ge=0),
+        maxPrice: Optional[float] = Query(None, description="最高价格", ge=0),
+        current: int = Query(1, description="当前页码", ge=1),
+        size: int = Query(10, description="每页数量", ge=1, le=100)
 ):
     """
     刀具耗材搜索接口（复用查询逻辑）
@@ -169,18 +178,18 @@ async def search_cutters(
     summary="新增刀具耗材",
     description="""
     新增刀具耗材信息。
-    
+
     **必填字段：**
     - 品牌名称（brandName）
     - 刀具柜名称（cabinetName）
     - 刀具型号（cutterCode）
     - 单价（price）
     - 创建人（createUser）
-    
+
     **可选字段：**
     - 刀头图片列表（imageUrlList）
     - 其他扩展字段（品牌编码、刀具类型、规格等）
-    
+
     **注意：**
     - 单价必须大于0
     - 图片列表为数组格式，每个图片包含name、newFilename、url字段
@@ -193,20 +202,20 @@ async def create_cutter(request: CreateCutterRequest):
     # 验证价格
     if request.price <= 0:
         raise HTTPException(status_code=400, detail="单价必须大于0")
-    
+
     # 调用原始API
     try:
         result = api_client.create_cutter(request.model_dump())
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "新增失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -219,10 +228,10 @@ async def create_cutter(request: CreateCutterRequest):
     summary="修改刀具耗材",
     description="""
     修改指定刀具耗材的信息。
-    
+
     **必填字段：**
     - 刀具ID（cutter_id，通过URL路径传递）
-    
+
     **可修改字段：**
     - 品牌名称（brandName）
     - 刀具柜名称（cabinetName）
@@ -231,7 +240,7 @@ async def create_cutter(request: CreateCutterRequest):
     - 更新人（updateUser）
     - 刀头图片列表（imageUrlList）
     - 其他扩展字段
-    
+
     **注意：**
     - 只传递需要修改的字段，未传递的字段将保持原值
     - 如果传递了price字段，必须大于0
@@ -245,24 +254,24 @@ async def update_cutter(cutter_id: int, request: UpdateCutterRequest):
     # 验证价格（如果传递了价格字段）
     if request.price is not None and request.price <= 0:
         raise HTTPException(status_code=400, detail="单价必须大于0")
-    
+
     # 将URL路径中的ID赋值给请求体
     request.id = cutter_id
-    
+
     # 调用原始API
     try:
         # 只传递非空字段
         result = api_client.update_cutter(request.model_dump(exclude_none=True))
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "修改失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -275,14 +284,14 @@ async def update_cutter(cutter_id: int, request: UpdateCutterRequest):
     summary="批量删除刀具耗材",
     description="""
     批量删除刀具耗材记录。
-    
+
     **参数说明：**
     - ids: 要删除的刀具ID集合，多个ID用逗号分割
-    
+
     **使用场景：**
     - 删除单条记录：ids=123
     - 批量删除：ids=123,456,789
-    
+
     **注意：**
     - 删除操作不可逆，请谨慎操作
     - 建议在删除前进行二次确认
@@ -290,7 +299,7 @@ async def update_cutter(cutter_id: int, request: UpdateCutterRequest):
     """
 )
 async def delete_cutters(
-    ids: str = Query(..., description="要删除的刀具ID集合，多个ID用逗号分割（例如：1,2,3）")
+        ids: str = Query(..., description="要删除的刀具ID集合，多个ID用逗号分割（例如：1,2,3）")
 ):
     """
     批量删除刀具耗材接口
@@ -298,28 +307,28 @@ async def delete_cutters(
     # 验证ids参数
     if not ids or ids.strip() == "":
         raise HTTPException(status_code=400, detail="删除ID不能为空")
-    
+
     # 验证ids格式（应该是数字和逗号的组合）
     import re
     if not re.match(r'^\d+(,\d+)*$', ids.strip()):
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="ID格式不正确，应为数字或用逗号分隔的数字（例如：1,2,3）"
         )
-    
+
     # 调用原始API
     try:
         result = api_client.delete_cutters(ids)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "删除失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -334,7 +343,7 @@ async def delete_cutters(
     summary="品牌信息分页查询",
     description="""
     查询刀具品牌信息，支持多维度筛选和分页。
-    
+
     **支持的查询条件：**
     - 品牌编码：模糊查询
     - 品牌名称：模糊查询
@@ -343,7 +352,7 @@ async def delete_cutters(
     - 业务状态：精确匹配
     - 创建人：精确匹配
     - 创建时间范围：开始时间和结束时间
-    
+
     **注意：**
     - 所有查询条件均为可选，不传递任何条件时返回全部数据
     - 时间范围可以只传开始时间或结束时间，也可以同时传递
@@ -352,16 +361,16 @@ async def delete_cutters(
     """
 )
 async def query_brands(
-    brandCode: Optional[str] = Query(None, description="品牌编码"),
-    brandName: Optional[str] = Query(None, description="品牌名称"),
-    corporateName: Optional[str] = Query(None, description="公司名称"),
-    supplierName: Optional[str] = Query(None, description="供应商名称"),
-    status: Optional[int] = Query(None, description="业务状态"),
-    createUser: Optional[int] = Query(None, description="创建人 ID"),
-    startTime: Optional[str] = Query(None, description="创建开始时间（格式：YYYY-MM-DD HH:mm:ss）"),
-    endTime: Optional[str] = Query(None, description="创建结束时间（格式：YYYY-MM-DD HH:mm:ss）"),
-    current: int = Query(1, description="当前页码", ge=1),
-    size: int = Query(10, description="每页数量", ge=1, le=100)
+        brandCode: Optional[str] = Query(None, description="品牌编码"),
+        brandName: Optional[str] = Query(None, description="品牌名称"),
+        corporateName: Optional[str] = Query(None, description="公司名称"),
+        supplierName: Optional[str] = Query(None, description="供应商名称"),
+        status: Optional[int] = Query(None, description="业务状态"),
+        createUser: Optional[int] = Query(None, description="创建人 ID"),
+        startTime: Optional[str] = Query(None, description="创建开始时间（格式：YYYY-MM-DD HH:mm:ss）"),
+        endTime: Optional[str] = Query(None, description="创建结束时间（格式：YYYY-MM-DD HH:mm:ss）"),
+        current: int = Query(1, description="当前页码", ge=1),
+        size: int = Query(10, description="每页数量", ge=1, le=100)
 ):
     """
     品牌信息分页查询接口
@@ -371,7 +380,7 @@ async def query_brands(
         # 简单验证：开始时间不能大于结束时间
         if startTime > endTime:
             raise HTTPException(status_code=400, detail="开始时间不能大于结束时间")
-    
+
     # 构建查询参数
     query_params = BrandQueryParams(
         brandCode=brandCode,
@@ -385,20 +394,20 @@ async def query_brands(
         current=current,
         size=size
     )
-    
+
     # 调用原始API
     try:
         result = api_client.get_brand_list(query_params.model_dump(exclude_none=False))
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "查询失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -411,7 +420,7 @@ async def query_brands(
     summary="新增品牌信息",
     description="""
     新增刀具品牌信息。
-    
+
     **必填字段：**
     - 品牌编码（brandCode）
     - 品牌名称（brandName）
@@ -419,11 +428,11 @@ async def query_brands(
     - 供应商名称（supplierName）
     - 供应商联系人（supplierUser）
     - 联系方式（phone）
-    
+
     **可选字段：**
     - 创建部门（createDept）
     - 业务状态（status）
-    
+
     **注意：**
     - 新增时不需要传递id字段
     - 联系方式建议使用手机号码格式
@@ -436,24 +445,24 @@ async def create_brand(request: SubmitBrandRequest):
     # 验证联系方式格式（简单验证）
     if request.phone and len(request.phone.strip()) == 0:
         raise HTTPException(status_code=400, detail="联系方式不能为空")
-    
+
     # 新增时不应该有id
     if request.id is not None:
         raise HTTPException(status_code=400, detail="新增品牌时不应该传递id字段")
-    
+
     # 调用原始API
     try:
         result = api_client.submit_brand(request.model_dump())
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "新增失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -466,7 +475,7 @@ async def create_brand(request: SubmitBrandRequest):
     summary="修改品牌信息",
     description="""
     修改指定品牌的信息。
-    
+
     **必填字段：**
     - 品牌 ID（brand_id，通过URL路径传递）
     - 品牌编码（brandCode）
@@ -475,11 +484,11 @@ async def create_brand(request: SubmitBrandRequest):
     - 供应商名称（supplierName）
     - 供应商联系人（supplierUser）
     - 联系方式（phone）
-    
+
     **可选字段：**
     - 创建部门（createDept）
     - 业务状态（status）
-    
+
     **注意：**
     - 修改时必须提供品牌ID
     - 所有字段都需要传递，即使不修改也要传递原值
@@ -492,23 +501,23 @@ async def update_brand(brand_id: int, request: SubmitBrandRequest):
     # 验证联系方式格式（简单验证）
     if request.phone and len(request.phone.strip()) == 0:
         raise HTTPException(status_code=400, detail="联系方式不能为空")
-    
+
     # 将URL路径中的ID赋值给请求体
     request.id = brand_id
-    
+
     # 调用原始API
     try:
         result = api_client.submit_brand(request.model_dump())
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "修改失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -521,14 +530,14 @@ async def update_brand(brand_id: int, request: SubmitBrandRequest):
     summary="批量删除品牌信息",
     description="""
     批量删除品牌信息记录。
-    
+
     **参数说明：**
     - ids: 要删除的品牌ID集合，多个ID用逗号分割
-    
+
     **使用场景：**
     - 删除单条记录：ids=123
     - 批量删除：ids=123,456,789
-    
+
     **注意：**
     - 删除操作不可逆，请谨慎操作
     - 建议在删除前进行二次确认
@@ -537,7 +546,7 @@ async def update_brand(brand_id: int, request: SubmitBrandRequest):
     """
 )
 async def delete_brands(
-    ids: str = Query(..., description="要删除的品牌ID集合，多个ID用逗号分割（例如：1,2,3）")
+        ids: str = Query(..., description="要删除的品牌ID集合，多个ID用逗号分割（例如：1,2,3）")
 ):
     """
     批量删除品牌信息接口
@@ -545,28 +554,28 @@ async def delete_brands(
     # 验证ids参数
     if not ids or ids.strip() == "":
         raise HTTPException(status_code=400, detail="删除ID不能为空")
-    
+
     # 验证ids格式（应该是数字和逗号的组合）
     import re
     if not re.match(r'^\d+(,\d+)*$', ids.strip()):
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="ID格式不正确，应为数字或用逗号分隔的数字（例如：1,2,3）"
         )
-    
+
     # 调用原始API
     try:
         result = api_client.delete_brands(ids)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "删除失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -581,14 +590,14 @@ async def delete_brands(
     summary="收刀柜信息查询",
     description="""
     查询收刀柜货道信息，支持多维度筛选。
-    
+
     **支持的查询条件：**
     - 刀柜编码：精确匹配
     - 库位号：精确匹配
     - 柜子面：ABCDE面
     - 库位状态：精确匹配
     - 绑定状态：0-非禁用 1-禁用
-    
+
     **展示字段：**
     - 库位号（stockLoc）
     - 柜子面（locPrefix）
@@ -600,20 +609,20 @@ async def delete_brands(
     - 绑定状态（isBan）
     - 绑定刀具型号（cutterCode）
     - 最近更新时间（warehouseInTime）
-    
+
     **注意：**
     - 所有查询条件均为可选，不传递任何条件时返回全部收刀柜数据
     - 此接口同时支持搜索和刷新功能
     """
 )
 async def query_stock_put_cabinets(
-    cabinetCode: Optional[str] = Query(None, description="刀柜编码"),
-    stockLoc: Optional[str] = Query(None, description="库位号"),
-    locPrefix: Optional[str] = Query(None, description="柜子面（ABCDE）"),
-    stockStatus: Optional[int] = Query(None, description="库位状态"),
-    isBan: Optional[str] = Query(None, description="绑定状态（0:非禁用 1:禁用）"),
-    borrowStatus: Optional[int] = Query(None, description="还刀状态（0:修磨 1:报废 2:换线 3:错领）"),
-    storageType: Optional[int] = Query(None, description="暂存类型（0:公共暂存 1:个人暂存 2:扩展取刀）")
+        cabinetCode: Optional[str] = Query(None, description="刀柜编码"),
+        stockLoc: Optional[str] = Query(None, description="库位号"),
+        locPrefix: Optional[str] = Query(None, description="柜子面（ABCDE）"),
+        stockStatus: Optional[int] = Query(None, description="库位状态"),
+        isBan: Optional[str] = Query(None, description="绑定状态（0:非禁用 1:禁用）"),
+        borrowStatus: Optional[int] = Query(None, description="还刀状态（0:修磨 1:报废 2:换线 3:错领）"),
+        storageType: Optional[int] = Query(None, description="暂存类型（0:公共暂存 1:个人暂存 2:扩展取刀）")
 ):
     """
     收刀柜信息查询接口
@@ -628,20 +637,20 @@ async def query_stock_put_cabinets(
         borrowStatus=borrowStatus,
         storageType=storageType
     )
-    
+
     # 调用原始API
     try:
         result = api_client.get_stock_put_list(query_params.model_dump(exclude_none=False))
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "查询失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -654,14 +663,14 @@ async def query_stock_put_cabinets(
     summary="货道解绑耗材（清空刀具数量）",
     description="""
     解绑指定货道的刀具耗材，清空刀具数量。
-    
+
     **参数说明：**
     - stock_id: 刀柜货道主键（通过URL路径传递）
-    
+
     **操作效果：**
     - 清空该货道的刀具绑定关系
     - 重置刀具数量为0
-    
+
     **注意：**
     - 解绑操作不可逆，请谨慎操作
     - 建议在解绑前进行二次确认
@@ -675,16 +684,16 @@ async def unbind_stock_cutter(stock_id: int):
     # 调用原始API
     try:
         result = api_client.unbind_stock_cutter(stock_id)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "解绑失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -697,15 +706,15 @@ async def unbind_stock_cutter(stock_id: int):
     summary="货道禁用/启用库位",
     description="""
     禁用或启用指定货道的库位。
-    
+
     **参数说明：**
     - stock_id: 刀柜货道主键（通过URL路径传递）
     - is_ban: 禁用状态（0-启用 1-禁用）
-    
+
     **操作效果：**
     - 禁用：该货道不能进行取刀/还刀操作
     - 启用：恢复该货道的正常使用
-    
+
     **注意：**
     - 禁用后不影响已有数据，只是暂时停用
     - 启用后可以继续使用
@@ -713,8 +722,8 @@ async def unbind_stock_cutter(stock_id: int):
     """
 )
 async def change_stock_ban_status(
-    stock_id: int,
-    is_ban: int = Query(..., description="禁用状态（0:启用 1:禁用）", ge=0, le=1)
+        stock_id: int,
+        is_ban: int = Query(..., description="禁用状态（0:启用 1:禁用）", ge=0, le=1)
 ):
     """
     货道禁用/启用接口
@@ -722,16 +731,16 @@ async def change_stock_ban_status(
     # 调用原始API
     try:
         result = api_client.change_stock_ban_status(stock_id, is_ban)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "操作失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -744,12 +753,12 @@ async def change_stock_ban_status(
     summary="货道统计数据查询",
     description="""
     查询收刀柜货道的统计数据。
-    
+
     **支持的查询条件：**
     - 刀柜编码：精确匹配
     - 柜子面：ABCDE面
     - 库位类型：收刀柜(0) 或 取刀柜(1)，默认0
-    
+
     **返回统计数据：**
     - 货道总数（totalNum）
     - 禁用数量（disableNum）
@@ -757,12 +766,12 @@ async def change_stock_ban_status(
     - 占用数量（workNum）
     - 库存告警值（makeAlarm）
     - 总库存金额（totalAmount，扩展字段）
-    
+
     **使用场景：**
-    - 收刀柜货道管理页面的“货道统计”按钮
+    - 收刀柜货道管理页面的"货道统计"按钮
     - 可按刀柜编码和柜子面进行筛选
     - 默认查询收刀柜的统计数据
-    
+
     **注意：**
     - 所有查询条件均为可选
     - 不传递任何条件时返回所有收刀柜的统计数据
@@ -770,9 +779,9 @@ async def change_stock_ban_status(
     """
 )
 async def get_stock_statistics(
-    cabinetCode: Optional[str] = Query(None, description="刀柜编码"),
-    locPrefix: Optional[str] = Query(None, description="柜子面（ABCDE）"),
-    locType: Optional[int] = Query(0, description="库位类型（收刀柜:0 取刀柜:1）")
+        cabinetCode: Optional[str] = Query(None, description="刀柜编码"),
+        locPrefix: Optional[str] = Query(None, description="柜子面（ABCDE）"),
+        locType: Optional[int] = Query(0, description="库位类型（收刀柜:0 取刀柜:1）")
 ):
     """
     货道统计数据查询接口
@@ -783,20 +792,20 @@ async def get_stock_statistics(
         locPrefix=locPrefix,
         locType=locType
     )
-    
+
     # 调用原始API
     try:
         result = api_client.get_stock_statistical_num(query_params.model_dump(exclude_none=False))
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "查询失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -811,7 +820,7 @@ async def get_stock_statistics(
     summary="取刀柜信息查询",
     description="""
     查询取刀柜货道信息，支持多维度筛选。
-    
+
     **支持的查询条件：**
     - 品牌编码：精确匹配
     - 刀柜编码：精确匹配
@@ -819,7 +828,7 @@ async def get_stock_statistics(
     - 刀具类型：精确匹配
     - 柜子面：ABCDE面
     - 库位号：精确匹配
-    
+
     **展示字段：**
     - 品牌名称（brandName）
     - 刀具型号（cutterCode）
@@ -833,22 +842,22 @@ async def get_stock_statistics(
     - 暂存类型（storageType）
     - 绑定状态（isBan）
     - 刀柜编码（cabinetCode）
-    
+
     **注意：**
     - 所有查询条件均为可选，不传递任何条件时返回全部取刀柜数据
     - 此接口同时支持搜索和刷新功能
     """
 )
 async def query_stock_take_cabinets(
-    brandCode: Optional[str] = Query(None, description="品牌编码"),
-    cabinetCode: Optional[str] = Query(None, description="刀柜编码"),
-    cutterCode: Optional[str] = Query(None, description="刀具型号"),
-    cutterType: Optional[str] = Query(None, description="刀具类型"),
-    locPrefix: Optional[str] = Query(None, description="柜子面（ABCDE）"),
-    stockLoc: Optional[str] = Query(None, description="库位号"),
-    cutterOrBrand: Optional[str] = Query(None, description="耗材型号或品牌"),
-    materialCode: Optional[str] = Query(None, description="物料编码"),
-    specification: Optional[str] = Query(None, description="规格")
+        brandCode: Optional[str] = Query(None, description="品牌编码"),
+        cabinetCode: Optional[str] = Query(None, description="刀柜编码"),
+        cutterCode: Optional[str] = Query(None, description="刀具型号"),
+        cutterType: Optional[str] = Query(None, description="刀具类型"),
+        locPrefix: Optional[str] = Query(None, description="柜子面（ABCDE）"),
+        stockLoc: Optional[str] = Query(None, description="库位号"),
+        cutterOrBrand: Optional[str] = Query(None, description="耗材型号或品牌"),
+        materialCode: Optional[str] = Query(None, description="物料编码"),
+        specification: Optional[str] = Query(None, description="规格")
 ):
     """
     取刀柜信息查询接口
@@ -865,20 +874,20 @@ async def query_stock_take_cabinets(
         materialCode=materialCode,
         specification=specification
     )
-    
+
     # 调用原始API
     try:
-        result = api_client.get_stock_take_list(query_params.dict(exclude_none=False))
-        
+        result = api_client.get_stock_take_list(query_params.model_dump(exclude_none=False))
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "查询失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -891,14 +900,14 @@ async def query_stock_take_cabinets(
     summary="取刀柜货道解绑耗材",
     description="""
     解绑指定取刀柜货道的刀具耗材，清空刀具数量。
-    
+
     **参数说明：**
     - stock_id: 刀柜货道主键（通过URL路径传递）
-    
+
     **操作效果：**
     - 清空该货道的刀具绑定关系
     - 重置刀具数量为0
-    
+
     **注意：**
     - 解绑操作不可逆，请谨慎操作
     - 建议在解绑前进行二次确认
@@ -913,16 +922,16 @@ async def unbind_stock_take_cutter(stock_id: int):
     # 调用原始API（与收刀柜使用相同API）
     try:
         result = api_client.unbind_stock_cutter(stock_id)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "解绑失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -935,15 +944,15 @@ async def unbind_stock_take_cutter(stock_id: int):
     summary="取刀柜货道禁用/启用库位",
     description="""
     禁用或启用指定取刀柜货道的库位。
-    
+
     **参数说明：**
     - stock_id: 刀柜货道主键（通过URL路径传递）
     - is_ban: 禁用状态（0-启用 1-禁用）
-    
+
     **操作效果：**
     - 禁用：该货道不能进行取刀/还刀操作
     - 启用：恢复该货道的正常使用
-    
+
     **注意：**
     - 禁用后不影响已有数据，只是暂时停用
     - 启用后可以继续使用
@@ -952,8 +961,8 @@ async def unbind_stock_take_cutter(stock_id: int):
     """
 )
 async def change_stock_take_ban_status(
-    stock_id: int,
-    is_ban: int = Query(..., description="禁用状态（0:启用 1:禁用）", ge=0, le=1)
+        stock_id: int,
+        is_ban: int = Query(..., description="禁用状态（0:启用 1:禁用）", ge=0, le=1)
 ):
     """
     取刀柜货道禁用/启用接口（复用收刀柜禁用/启用接口）
@@ -961,16 +970,16 @@ async def change_stock_take_ban_status(
     # 调用原始API（与收刀柜使用相同API）
     try:
         result = api_client.change_stock_ban_status(stock_id, is_ban)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "操作失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -985,21 +994,21 @@ async def change_stock_take_ban_status(
     summary="预补刀查询（检查是否可以补刀）",
     description="""
     批量预补刀查询，获取指定刀柜中哪些货道可以补刀。
-    
+
     **参数说明：**
     - cabinet_code: 刀柜编码（通过URL路径传递）
-    
+
     **返回数据：**
     - successStock: 可以补刀的货道列表
       - 包含：刀柜编码、库位号、货道容量、补货前数量、补货后数量
     - errorStock: 不能补刀的货道列表
       - 包含：刀柜编码、库位号、失败原因
-    
+
     **使用场景：**
-    - 点击“预补刀”按钮时调用
+    - 点击"预补刀"按钮时调用
     - 在实际补刀前检查哪些货道需要补充
     - 展示补刀预览信息给用户确认
-    
+
     **注意：**
     - 此接口仅查询，不会实际补刀
     - 需要用户确认后再调用补刀接口
@@ -1013,16 +1022,16 @@ async def pre_batch_plug(cabinet_code: str):
     # 调用原始API
     try:
         result = api_client.pre_batch_plug(cabinet_code)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "查询失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -1035,20 +1044,20 @@ async def pre_batch_plug(cabinet_code: str):
     summary="批量一键补刀",
     description="""
     执行批量一键补刀操作，对指定刀柜中需要补充的货道进行补刀。
-    
+
     **参数说明：**
     - cabinet_code: 刀柜编码（通过URL路径传递）
-    
+
     **操作效果：**
     - 对所有可补充的货道进行补刀
     - 补充到货道的最大容量
     - 自动更新库存数量
-    
+
     **使用场景：**
-    - 点击“补刀”按钮时调用
+    - 点击"补刀"按钮时调用
     - 在预补刀查询后用户确认执行
     - 定期维护时批量补充刀具
-    
+
     **注意：**
     - 此操作不可逆，请谨慎操作
     - 建议先调用预补刀接口查看预览
@@ -1063,23 +1072,415 @@ async def on_pre_batch_plug(cabinet_code: str):
     # 调用原始API
     try:
         result = api_client.on_pre_batch_plug(cabinet_code)
-        
+
         # 检查响应状态
         if not result.get("success"):
             raise HTTPException(
                 status_code=500,
                 detail=result.get("msg", "补刀失败")
             )
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
+# ==================== 统计接口（修正版） ====================
 
+@router.get(
+    "/storage-statistics",
+    response_model=StorageStatisticsResponse,
+    summary="出入库统计列表",
+    description="""
+    获取刀具的出入库记录统计信息。
+
+    **功能：** 查询刀具的出入库记录统计信息
+
+    **参数说明：**
+    - current: 当前页码，默认1
+    - size: 每页数量，默认10
+    - startTime: 开始时间（格式：YYYY-MM-DD HH:mm:ss）
+    - endTime: 结束时间（格式：YYYY-MM-DD HH:mm:ss）
+    - recordStatus: 记录状态
+      * 0: 取刀
+      * 1: 还刀
+      * 2: 收刀
+      * 3: 暂存
+      * 4: 完成
+      * 5: 违规还刀
+    - rankingType: 排名类型
+      * 0: 按数量排序
+      * 1: 按金额排序
+    - order: 排序顺序
+      * 0: 从大到小（降序）
+      * 1: 从小到大（升序）
+
+    **返回数据：**
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 分页数据
+      * current: 当前页
+      * size: 每页数量
+      * total: 总记录数
+      * pages: 总页数
+      * records: 记录列表
+    """
+)
+async def get_storage_statistics(
+        current: Optional[int] = Query(1, ge=1, description="当前页"),
+        size: Optional[int] = Query(10, ge=1, le=100, description="每页数量"),
+        start_time: Optional[str] = Query(None, alias="startTime", description="开始时间（YYYY-MM-DD HH:mm:ss）"),
+        end_time: Optional[str] = Query(None, alias="endTime", description="结束时间（YYYY-MM-DD HH:mm:ss）"),
+        record_status: Optional[int] = Query(None, alias="recordStatus",
+                                             description="记录状态：0-取刀，1-还刀，2-收刀，3-暂存，4-完成，5-违规还刀"),
+        ranking_type: Optional[int] = Query(None, alias="rankingType",
+                                            description="排名类型：0-按数量排序，1-按金额排序"),
+        order: Optional[int] = Query(None, description="排序顺序：0-从大到小（降序），1-从小到大（升序）")
+):
+    """
+    出入库统计列表接口
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "current": current,
+            "size": size,
+            "startTime": start_time,
+            "endTime": end_time,
+            "recordStatus": record_status,
+            "rankingType": ranking_type,
+            "order": order
+        }
+
+        # 调用API客户端方法获取数据
+        result = api_client.get_storage_statistics(params)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取出入库统计数据失败: {str(e)}")
+
+
+@router.get(
+    "/export-stock-record",
+    response_model=StorageStatisticsResponse,
+    summary="出入库记录导出",
+    description="""
+    导出刀具耗材数据（出入库记录）。
+
+    **功能：** 导出刀具的出入库记录数据，返回JSON格式
+
+    **参数说明：**
+    - startTime: 开始时间
+    - endTime: 结束时间
+    - recordStatus: 记录状态
+      * 0: 取刀
+      * 1: 还刀
+      * 2: 收刀
+      * 3: 暂存
+      * 4: 完成
+      * 5: 违规还刀
+    - rankingType: 排名类型
+      * 0: 按数量排序
+      * 1: 按金额排序
+    - order: 排序顺序
+      * 0: 从大到小（降序）
+      * 1: 从小到大（升序）
+
+    **返回数据：**
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 导出数据
+      * records: 记录列表（包含完整的出入库信息）
+        - account: 用户名
+        - name: 用户名称
+        - brandName: 品牌名称
+        - brandCode: 品牌编码
+        - cutterType: 刀具类型
+        - cutterCode: 刀具型号
+        - specification: 规格
+        - quantity: 数量
+        - price: 单价
+        - oldPrice: 历史单价
+        - stockLoc: 库位号
+        - stockType: 库存类型（0:入库 1:出库）
+        - status: 业务状态
+        - cabinetName: 刀具柜名称
+        - cabinetCode: 刀具柜编码
+        - factoryName: 工厂名称
+        - workshopName: 车间名称
+        - operator: 操作人
+        - createTime: 创建时间
+        - updateTime: 更新时间
+        - detailsName: 操作详情
+        - remake: 备注
+        - 及其他字段...
+    """
+)
+async def export_stock_record(
+        start_time: Optional[str] = Query(None, alias="startTime", description="开始时间（YYYY-MM-DD HH:mm:ss）"),
+        end_time: Optional[str] = Query(None, alias="endTime", description="结束时间（YYYY-MM-DD HH:mm:ss）"),
+        record_status: Optional[int] = Query(None, alias="recordStatus",
+                                             description="记录状态：0-取刀，1-还刀，2-收刀，3-暂存，4-完成，5-违规还刀"),
+        ranking_type: Optional[int] = Query(None, alias="rankingType",
+                                            description="排名类型：0-按数量排序，1-按金额排序"),
+        order: Optional[int] = Query(None, description="排序顺序：0-从大到小（降序），1-从小到大（升序）")
+):
+    """
+    出入库记录导出接口
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "startTime": start_time,
+            "endTime": end_time,
+            "recordStatus": record_status,
+            "rankingType": ranking_type,
+            "order": order
+        }
+
+        # 调用API客户端方法获取导出数据
+        result = api_client.export_stock_record(params)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导出出入库记录失败: {str(e)}")
+
+
+@router.get(
+    "/charts-accumulated",
+    response_model=ChartsResponse,
+    summary="刀具消耗统计",
+    description="""
+    获取刀具的消耗统计数据。
+
+    **功能：** 查询刀具的消耗统计数据，支持按刀具类型或统计指标展示
+
+    **请求参数：** 无
+
+    **返回数据：**
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 统计数据
+      * titleList: 统计项标题列表（刀具类型或统计指标）
+      * dataList: 对应的数据列表
+
+    **数据展示方式：**
+
+    方式1 - 按刀具类型统计：
+    - titleList 包含：车刀片、铣刀、钻头、镑刀等刀具类型
+    - dataList 包含：各类刀具的累计消耗数量或使用次数
+
+    方式2 - 按统计指标展示：
+    - titleList 包含：
+      * 累计使用次数：刀具被使用的总次数
+      * 累计使用时长：刀具累计工作时间
+      * 平均寿命：刀具平均使用寿命
+      * 更换次数：刀具被更换的次数
+      * 使用效率：刀具使用效率百分比
+    - dataList 包含：各指标对应的数值
+    """
+)
+async def get_charts_accumulated():
+    """
+    刀具消耗统计接口
+    """
+    try:
+        # 调用API客户端方法获取数据
+        result = api_client.get_charts_accumulated()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取刀具消耗统计失败: {str(e)}")
+
+
+@router.get(
+    "/total-stock",
+    response_model=TotalStockResponse,
+    summary="总库存统计列表",
+    description="""
+    获取刀柜库存统计数据，支持多条件搜索和列表刷新。
+
+    **功能：** 查询刀柜库存统计数据，支持多条件搜索和列表刷新
+
+    **请求参数：**
+    - statisticsType: 统计类型（可选）
+    - brandName: 品牌名称（可选）
+    - cabinetCode: 刀柜编码（可选）
+    - cutterType: 刀具类型（可选）
+    - stockStatus: 库位状态（可选）
+    - current: 当前页，默认1
+    - size: 每页数量，默认10
+
+    **返回数据：**
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 库存列表数据（数组格式）
+      * id: 主键id
+      * cabinetCode: 刀柜编码
+      * stockLoc: 库位号
+      * brandName: 品牌名称
+      * cutterCode: 刀具型号
+      * cutterType: 刀具类型
+      * specification: 规格
+      * locCapacity: 库位容量
+      * locSurplus: 剩余数量（货道库存）
+      * stockStatus: 库位状态
+      * price: 单价
+      * stockValue: 库存价值（后端计算：单价 * 剩余数量）
+      * cabinetSide: 柜子面
+      * warehouseInTime: 入库时间
+      * updateTime: 更新时间
+
+    **使用场景：**
+    1. **搜索功能**：根据统计类型、品牌名称、刀柜编码、刀具类型、库位状态进行查询
+    2. **刷新功能**：不带搜索条件，获取所有库存数据
+    3. **分页显示**：支持分页查询，适合前端表格展示
+    """
+)
+async def get_total_stock(
+        statistics_type: Optional[str] = Query(None, alias="statisticsType", description="统计类型"),
+        brand_name: Optional[str] = Query(None, alias="brandName", description="品牌名称"),
+        cabinet_code: Optional[str] = Query(None, alias="cabinetCode", description="刀柜编码"),
+        cutter_type: Optional[str] = Query(None, alias="cutterType", description="刀具类型"),
+        stock_status: Optional[int] = Query(None, alias="stockStatus", description="库位状态"),
+        current: Optional[int] = Query(1, ge=1, description="当前页"),
+        size: Optional[int] = Query(10, ge=1, le=100, description="每页数量")
+):
+    """
+    总库存统计列表接口
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "statisticsType": statistics_type,
+            "brandName": brand_name,
+            "cabinetCode": cabinet_code,
+            "cutterType": cutter_type,
+            "stockStatus": stock_status,
+            "current": current,
+            "size": size
+        }
+
+        # 调用API客户端方法获取数据
+        result = api_client.get_total_stock_list(params)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取总库存统计列表失败: {str(e)}")
+
+
+@router.get(
+    "/stock-location/{stock_id}",
+    response_model=StockLocationDetailResponse,
+    summary="总库存统计详情",
+    description="""
+    获取单个库位的详细信息（总库存统计的一部分）。
+
+    **功能：** 根据库位主键查询单个库位的详细信息
+
+    **请求参数：**
+    - stock_id: 刀柜货道主键（路径参数）
+
+    **返回数据：**
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 库位详细信息（包含所有字段）
+
+    **使用场景：**
+    - 查看单个库位的完整信息
+    - 点击表格行查看详情
+    """
+)
+async def get_stock_location_detail(stock_id: int):
+    """
+    总库存统计详情接口（单个库位详情）
+    """
+    try:
+        # 调用API客户端方法获取数据
+        result = api_client.get_stock_location_by_id(stock_id)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取库位详情失败: {str(e)}")
+
+
+@router.get(
+    "/waste-knife-recycle",
+    response_model=WasteKnifeRecycleResponse,
+    summary="废刀回收统计",
+    description="""
+    获取废刀回收统计信息（收刀柜还刀信息）。
+
+    **功能：** 查询收刀柜中的还刀信息，用于废刀回收统计和管理
+
+    **请求参数（全部可选）：**
+    - borrowCode: 还刀码
+    - cabinetCode: 刀柜编码
+    - stockLoc: 刀柜库位号
+
+    **返回数据：**
+    - code: 状态码
+    - msg: 返回消息
+    - success: 是否成功
+    - data: 还刀数据
+      * borrowStatus: 还刀状态（字符串）
+      * cabinetCode: 刀柜编码
+      * recordStatus: 记录状态：0-取刀，1-还刀，2-收刀，3-暂存
+      * list: 还刀详情列表
+        - id: 取刀主键
+        - borrowStatus: 还刀状态：0-修磨，1-报废，2-换线，3-错领
+        - borrowTime: 还刀时间
+        - borrowUserName: 还刀人
+        - brandName: 品牌名称
+        - cutterCode: 刀具型号
+        - cutterType: 刀具类型
+        - lendTime: 取刀时间
+        - lendUserName: 借刀人
+        - recordStatus: 记录状态
+        - specification: 规格
+        - stockLoc: 库位号
+
+    **使用场景：**
+    1. **废刀回收统计**：查看所有报废刀具（borrowStatus=1）
+    2. **修磨管理**：查看需要修磨的刀具（borrowStatus=0）
+    3. **错领追踪**：查询错领刀具情况（borrowStatus=3）
+    4. **换线管理**：统计需要换线的刀具（borrowStatus=2）
+    """
+)
+async def get_waste_knife_recycle(
+        borrow_code: Optional[str] = Query(None, alias="borrowCode", description="还刀码"),
+        cabinet_code: Optional[str] = Query(None, alias="cabinetCode", description="刀柜编码"),
+        stock_loc: Optional[str] = Query(None, alias="stockLoc", description="刀柜库位号")
+):
+    """
+    废刀回收统计接口
+    """
+    try:
+        # 构建查询参数
+        params = {
+            "borrowCode": borrow_code,
+            "cabinetCode": cabinet_code,
+            "stockLoc": stock_loc
+        }
+
+        # 调用API客户端方法获取数据
+        result = api_client.get_waste_knife_recycle_info(params)
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取废刀回收统计信息失败: {str(e)}")
 
 
 # ==================== 合并自 系统记录 模块的接口 ====================
@@ -1089,19 +1490,19 @@ async def on_pre_batch_plug(cabinet_code: str):
 # 领刀记录相关路由 (班组长)
 @router.get("/list", response_model=LendRecordResponse, tags=["班组长记录"])
 async def get_lend_record_list(
-    current: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
-    keyword: Optional[str] = Query(None, description="关键字搜索"),
-    department: Optional[str] = Query(None, description="部门筛选"),
-    startTime: Optional[str] = Query(None, description="开始时间"),
-    endTime: Optional[str] = Query(None, description="结束时间"),
-    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
-    rankingType: Optional[int] = Query(None, description="0: 数量 1: 金额"),
-    recordStatus: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀")
+        current: int = Query(1, ge=1, description="页码"),
+        size: int = Query(20, ge=1, le=100, description="每页数量"),
+        keyword: Optional[str] = Query(None, description="关键字搜索"),
+        department: Optional[str] = Query(None, description="部门筛选"),
+        startTime: Optional[str] = Query(None, description="开始时间"),
+        endTime: Optional[str] = Query(None, description="结束时间"),
+        order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+        rankingType: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+        recordStatus: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀")
 ):
     """
     获取领刀记录列表 (班组长)
-    
+
     Args:
         current: 页码，默认为1
         size: 每页数量，默认为20，最大100
@@ -1112,7 +1513,7 @@ async def get_lend_record_list(
         order: 顺序 0: 从大到小 1：从小到大
         rankingType: 0: 数量 1: 金额
         recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
-        
+
     Returns:
         LendRecordResponse: 领刀记录列表响应
     """
@@ -1127,27 +1528,28 @@ async def get_lend_record_list(
         rankingType=rankingType,
         recordStatus=recordStatus
     )
-    
+
     return result
+
 
 @router.get("/export", tags=["班组长记录"])
 async def export_lend_records(
-    endTime: Optional[str] = Query(None, description="结束时间"),
-    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
-    rankingType: Optional[int] = Query(None, description="0: 数量 1: 金额"),
-    recordStatus: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
-    startTime: Optional[str] = Query(None, description="开始时间")
+        endTime: Optional[str] = Query(None, description="结束时间"),
+        order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+        rankingType: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+        recordStatus: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+        startTime: Optional[str] = Query(None, description="开始时间")
 ):
     """
     导出领刀记录 (班组长)
-    
+
     Args:
         endTime: 结束时间
         order: 顺序 0: 从大到小 1：从小到大
         rankingType: 0: 数量 1: 金额
         recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
         startTime: 开始时间
-        
+
     Returns:
         Response: 包含导出文件的响应
     """
@@ -1159,7 +1561,7 @@ async def export_lend_records(
             recordStatus=recordStatus,
             startTime=startTime
         )
-        
+
         return Response(
             content=file_content,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1178,21 +1580,22 @@ async def export_lend_records(
             media_type="application/json"
         )
 
+
 # 告警预警相关路由 (班组长)
 @router.get("/alarm_list", response_model=AlarmWarningResponse, tags=["班组长记录"])
 async def list_alarm_warning(
-    loc_surplus: Optional[int] = Query(None, description="货道"),
-    alarm_level: Optional[int] = Query(None, description="预警等级"),
-    device_type: Optional[str] = Query(None, description="设备类型"),
-    cabinet_code: Optional[str] = Query(None, description="刀柜编码"),
-    brand_name: Optional[str] = Query(None, description="品牌名称"),
-    handle_status: Optional[int] = Query(None, description="处理状态"),
-    current: Optional[int] = Query(None, description="当前页"),
-    size: Optional[int] = Query(None, description="每页数量")
+        loc_surplus: Optional[int] = Query(None, description="货道"),
+        alarm_level: Optional[int] = Query(None, description="预警等级"),
+        device_type: Optional[str] = Query(None, description="设备类型"),
+        cabinet_code: Optional[str] = Query(None, description="刀柜编码"),
+        brand_name: Optional[str] = Query(None, description="品牌名称"),
+        handle_status: Optional[int] = Query(None, description="处理状态"),
+        current: Optional[int] = Query(None, description="当前页"),
+        size: Optional[int] = Query(None, description="每页数量")
 ):
     """
     获取告警预警列表 (班组长)
-    
+
     Args:
         loc_surplus: 货道
         alarm_level: 预警等级
@@ -1202,7 +1605,7 @@ async def list_alarm_warning(
         handle_status: 处理状态
         current: 当前页
         size: 每页数量
-        
+
     Returns:
         AlarmWarningResponse: 告警预警列表响应
     """
@@ -1216,31 +1619,33 @@ async def list_alarm_warning(
         current=current,
         size=size
     )
-    
+
     return result
+
 
 @router.get("/alarm_statistics", response_model=AlarmStatisticsResponse, tags=["班组长记录"])
 async def get_alarm_statistics():
     """
     获取告警统计信息 (班组长)
-    
+
     Returns:
         AlarmStatisticsResponse: 告警统计信息响应
     """
     result = api_client.get_alarm_statistics()
-    
+
     return result
+
 
 @router.post("/alarm_threshold", tags=["班组长记录"])
 async def update_alarm_threshold(
-    request: ThresholdSettingRequest = Body(..., description="阈值设置请求参数")
+        request: ThresholdSettingRequest = Body(..., description="阈值设置请求参数")
 ):
     """
     更新告警阈值 (班组长)
-    
+
     Args:
         request: 阈值设置请求参数
-        
+
     Returns:
         Response: 更新结果响应
     """
@@ -1248,23 +1653,24 @@ async def update_alarm_threshold(
         locSurplus=request.locSurplus,
         alarmThreshold=request.alarmThreshold
     )
-    
+
     return result
+
 
 @router.post("/handle_alarm/{alarm_id}", tags=["班组长记录"])
 async def handle_alarm_warning(
-    alarm_id: int,
-    handle_status: int = Body(..., description="处理状态"),
-    handle_remark: Optional[str] = Body(None, description="处理备注")
+        alarm_id: int,
+        handle_status: int = Body(..., description="处理状态"),
+        handle_remark: Optional[str] = Body(None, description="处理备注")
 ):
     """
     处理告警预警 (班组长)
-    
+
     Args:
         alarm_id: 告警ID
         handle_status: 处理状态 (0: 未处理, 1: 已处理, 2: 已忽略)
         handle_remark: 处理备注
-        
+
     Returns:
         Response: 处理结果响应
     """
@@ -1273,23 +1679,24 @@ async def handle_alarm_warning(
         handleStatus=handle_status,
         handleRemark=handle_remark
     )
-    
+
     return result
+
 
 @router.post("/batch_handle_alarm", tags=["班组长记录"])
 async def batch_handle_alarm_warning(
-    ids: List[int] = Body(..., description="告警ID列表"),
-    handle_status: int = Body(..., description="处理状态"),
-    handle_remark: Optional[str] = Body(None, description="处理备注")
+        ids: List[int] = Body(..., description="告警ID列表"),
+        handle_status: int = Body(..., description="处理状态"),
+        handle_remark: Optional[str] = Body(None, description="处理备注")
 ):
     """
     批量处理告警预警 (班组长)
-    
+
     Args:
         ids: 告警ID列表
         handle_status: 处理状态 (0: 未处理, 1: 已处理, 2: 已忽略)
         handle_remark: 处理备注
-        
+
     Returns:
         Response: 处理结果响应
     """
@@ -1298,21 +1705,22 @@ async def batch_handle_alarm_warning(
         handleStatus=handle_status,
         handleRemark=handle_remark
     )
-    
+
     return result
+
 
 @router.get("/export_alarm", tags=["班组长记录"])
 async def export_alarm_warning(
-    loc_surplus: Optional[int] = Query(None, description="货道"),
-    alarm_level: Optional[int] = Query(None, description="预警等级"),
-    device_type: Optional[str] = Query(None, description="设备类型"),
-    cabinet_code: Optional[str] = Query(None, description="刀柜编码"),
-    brand_name: Optional[str] = Query(None, description="品牌名称"),
-    handle_status: Optional[int] = Query(None, description="处理状态")
+        loc_surplus: Optional[int] = Query(None, description="货道"),
+        alarm_level: Optional[int] = Query(None, description="预警等级"),
+        device_type: Optional[str] = Query(None, description="设备类型"),
+        cabinet_code: Optional[str] = Query(None, description="刀柜编码"),
+        brand_name: Optional[str] = Query(None, description="品牌名称"),
+        handle_status: Optional[int] = Query(None, description="处理状态")
 ):
     """
     导出告警预警 (班组长)
-    
+
     Args:
         loc_surplus: 货道
         alarm_level: 预警等级
@@ -1320,7 +1728,7 @@ async def export_alarm_warning(
         cabinet_code: 刀柜编码
         brand_name: 品牌名称
         handle_status: 处理状态
-        
+
     Returns:
         Response: 包含导出文件的响应
     """
@@ -1333,7 +1741,7 @@ async def export_alarm_warning(
             brandName=brand_name,
             handleStatus=handle_status
         )
-        
+
         return Response(
             content=file_content,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1352,20 +1760,21 @@ async def export_alarm_warning(
             media_type="application/json"
         )
 
+
 # 补货记录相关路由 (班组长)
 @router.get("/replenish_list", response_model=ReplenishRecordResponse, tags=["班组长记录"])
 async def get_replenish_record_list(
-    current: Optional[int] = Query(None, description="当前页"),
-    end_time: Optional[str] = Query(None, description="结束时间"),
-    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
-    ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
-    record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
-    size: Optional[int] = Query(None, description="每页的数量"),
-    start_time: Optional[str] = Query(None, description="开始时间")
+        current: Optional[int] = Query(None, description="当前页"),
+        end_time: Optional[str] = Query(None, description="结束时间"),
+        order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+        ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+        record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+        size: Optional[int] = Query(None, description="每页的数量"),
+        start_time: Optional[str] = Query(None, description="开始时间")
 ):
     """
     获取补货记录列表 (班组长)
-    
+
     Args:
         current: 当前页
         end_time: 结束时间
@@ -1374,7 +1783,7 @@ async def get_replenish_record_list(
         record_status: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
         size: 每页的数量
         start_time: 开始时间
-        
+
     Returns:
         ReplenishRecordResponse: 补货记录列表响应，包含以下字段：
             - lendUserName: 取出人
@@ -1412,27 +1821,28 @@ async def get_replenish_record_list(
         size=size,
         startTime=start_time
     )
-    
+
     return result
+
 
 @router.get("/export_replenish", tags=["班组长记录"])
 async def export_replenish_records(
-    end_time: Optional[str] = Query(None, description="结束时间"),
-    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
-    ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
-    record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
-    start_time: Optional[str] = Query(None, description="开始时间")
+        end_time: Optional[str] = Query(None, description="结束时间"),
+        order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+        ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+        record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+        start_time: Optional[str] = Query(None, description="开始时间")
 ):
     """
     导出补货记录 (班组长)
-    
+
     Args:
         end_time: 结束时间
         order: 顺序 0: 从大到小 1：从小到大
         ranking_type: 0: 数量 1: 金额
         record_status: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
         start_time: 开始时间
-        
+
     Returns:
         Response: 包含导出文件的响应，Excel文件包含以下字段：
             - lendUserName: 取出人
@@ -1469,7 +1879,7 @@ async def export_replenish_records(
             recordStatus=record_status,
             startTime=start_time
         )
-        
+
         return Response(
             content=file_content,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1488,20 +1898,21 @@ async def export_replenish_records(
             media_type="application/json"
         )
 
+
 # 公共暂存记录相关路由 (班组长)
 @router.get("/storage_list", response_model=StorageRecordResponse, tags=["班组长记录"])
 async def get_storage_record_list(
-    current: Optional[int] = Query(None, description="当前页"),
-    end_time: Optional[str] = Query(None, description="结束时间"),
-    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
-    ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
-    record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
-    size: Optional[int] = Query(None, description="每页的数量"),
-    start_time: Optional[str] = Query(None, description="开始时间")
+        current: Optional[int] = Query(None, description="当前页"),
+        end_time: Optional[str] = Query(None, description="结束时间"),
+        order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+        ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+        record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+        size: Optional[int] = Query(None, description="每页的数量"),
+        start_time: Optional[str] = Query(None, description="开始时间")
 ):
     """
     获取公共暂存记录列表 (班组长)
-    
+
     Args:
         current: 当前页
         end_time: 结束时间
@@ -1510,7 +1921,7 @@ async def get_storage_record_list(
         record_status: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
         size: 每页的数量
         start_time: 开始时间
-        
+
     Returns:
         StorageRecordResponse: 公共暂存记录列表响应
     """
@@ -1523,27 +1934,28 @@ async def get_storage_record_list(
         size=size,
         startTime=start_time
     )
-    
+
     return result
+
 
 @router.get("/export_storage", tags=["班组长记录"])
 async def export_storage_records(
-    end_time: Optional[str] = Query(None, description="结束时间"),
-    order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
-    ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
-    record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
-    start_time: Optional[str] = Query(None, description="开始时间")
+        end_time: Optional[str] = Query(None, description="结束时间"),
+        order: Optional[int] = Query(None, description="顺序 0: 从大到小 1：从小到大"),
+        ranking_type: Optional[int] = Query(None, description="0: 数量 1: 金额"),
+        record_status: Optional[int] = Query(None, description="0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀"),
+        start_time: Optional[str] = Query(None, description="开始时间")
 ):
     """
     导出公共暂存记录 (班组长)
-    
+
     Args:
         end_time: 结束时间
         order: 顺序 0: 从大到小 1：从小到大
         ranking_type: 0: 数量 1: 金额
         record_status: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
         start_time: 开始时间
-        
+
     Returns:
         Response: 包含导出文件的响应
     """
@@ -1555,7 +1967,7 @@ async def export_storage_records(
             recordStatus=record_status,
             startTime=start_time
         )
-        
+
         return Response(
             content=file_content,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1573,5 +1985,3 @@ async def export_storage_records(
             }, ensure_ascii=False),
             media_type="application/json"
         )
-
-

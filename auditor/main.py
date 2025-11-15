@@ -144,6 +144,32 @@ async def health_check():
         "service": "auditor"
     }
 
+
+# 在 auditor/main.py 中添加全局异常处理
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+
+
+# 在 auditor/main.py 的全局异常处理器中添加详细日志
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """全局异常处理器"""
+    import traceback
+    logger.error(f"全局异常: {str(exc)}")
+    logger.error(f"请求URL: {request.url}")
+    logger.error(f"请求方法: {request.method}")
+    logger.error(f"异常堆栈: {traceback.format_exc()}")
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": 500,
+            "msg": f"服务器内部错误: {str(exc)}",
+            "success": False,
+            "data": None
+        }
+    )
 # 支持直接运行
 if __name__ == "__main__":
     import uvicorn
