@@ -2,6 +2,7 @@ import requests
 import logging
 import os
 from typing import Dict, Any, Optional, List
+from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
 
@@ -487,39 +488,151 @@ class OriginalAPIClient:
                 "data": None
             }
 
-    # ==================== 领刀记录相关接口 ====================
+    # ==================== 系统记录相关接口 ====================
 
+    # 合并自 auditor_record 模块的系统记录接口
+    # 日期: 2025-11-15
+    # 来源: auditor_record/services/api_client.py
+
+    # 补货记录API客户端
+    def get_replenish_records(self,
+                              current: Optional[int] = None,
+                              endTime: Optional[str] = None,
+                              order: Optional[int] = None,
+                              rankingType: Optional[int] = None,
+                              recordStatus: Optional[int] = None,
+                              size: Optional[int] = None,
+                              startTime: Optional[str] = None) -> Dict[str, Any]:
+        """
+        获取补货记录列表
+        
+        Args:
+            current: 当前页
+            endTime: 结束时间
+            order: 顺序 0: 从大到小 1：从小到大
+            rankingType: 0: 数量 1: 金额
+            recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
+            size: 每页的数量
+            startTime: 开始时间
+            
+        Returns:
+            Dict: API响应结果
+        """
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/replenishList")
+        
+        params = {}
+        
+        # 添加可选参数
+        if current is not None:
+            params["current"] = current
+        if endTime is not None:
+            params["endTime"] = endTime
+        if order is not None:
+            params["order"] = order
+        if rankingType is not None:
+            params["rankingType"] = rankingType
+        if recordStatus is not None:
+            params["recordStatus"] = recordStatus
+        if size is not None:
+            params["size"] = size
+        if startTime is not None:
+            params["startTime"] = startTime
+            
+        try:
+            response = self.session.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            return {
+                "code": -1,
+                "msg": f"请求失败: {str(e)}",
+                "data": {
+                    "current": 0,
+                    "hitCount": False,
+                    "pages": 0,
+                    "records": [],
+                    "searchCount": False,
+                    "size": 0,
+                    "total": 0
+                },
+                "success": False
+            }
+    
+    def export_replenish_records(self,
+                                endTime: Optional[str] = None,
+                                order: Optional[int] = None,
+                                rankingType: Optional[int] = None,
+                                recordStatus: Optional[int] = None,
+                                startTime: Optional[str] = None) -> bytes:
+        """
+        导出补货记录
+        
+        Args:
+            endTime: 结束时间
+            order: 顺序 0: 从大到小 1：从小到大
+            rankingType: 0: 数量 1: 金额
+            recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
+            startTime: 开始时间
+            
+        Returns:
+            bytes: 导出的Excel文件内容
+        """
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportReplenishRecord")
+        
+        params = {}
+        
+        # 添加可选参数
+        if endTime:
+            params["endTime"] = endTime
+        if order is not None:
+            params["order"] = order
+        if rankingType is not None:
+            params["rankingType"] = rankingType
+        if recordStatus is not None:
+            params["recordStatus"] = recordStatus
+        if startTime:
+            params["startTime"] = startTime
+            
+        try:
+            response = self.session.get(url, params=params)
+            response.raise_for_status()
+            return response.content
+        except requests.RequestException as e:
+            raise Exception(f"导出失败: {str(e)}")
+
+    # 领刀记录API客户端
     def get_lend_records(self, 
-                         page: int = 1,
-                         page_size: int = 20,
+                         current: int = 1,
+                         size: int = 20,
                          keyword: Optional[str] = None,
                          department: Optional[str] = None,
-                         start_date: Optional[str] = None,
-                         end_date: Optional[str] = None,
+                         startTime: Optional[str] = None,
+                         endTime: Optional[str] = None,
                          order: Optional[int] = None,
                          rankingType: Optional[int] = None,
                          recordStatus: Optional[int] = None) -> Dict[str, Any]:
         """
         获取领刀记录列表
-        接口地址: /qw/knife/web/from/mes/record/lendList
-        请求方式: GET
         
-        参数:
-            page: 页码
-            page_size: 每页数量
+        Args:
+            current: 当前页码
+            size: 每页数量
             keyword: 关键字搜索
             department: 部门筛选
-            start_date: 开始时间
-            end_date: 结束时间
+            startTime: 开始时间
+            endTime: 结束时间
             order: 顺序 0: 从大到小 1：从小到大
             rankingType: 0: 数量 1: 金额
             recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
+            
+        Returns:
+            Dict: API响应结果
         """
-        url = f"{self.base_url}/qw/knife/web/from/mes/record/lendList"
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/lendList")
         
-        params: dict[str, Any] = {
-            "current": page,
-            "size": page_size
+        params = {
+            "current": current,
+            "size": size
         }
         
         # 添加可选参数
@@ -527,10 +640,10 @@ class OriginalAPIClient:
             params["keyword"] = keyword
         if department:
             params["department"] = department
-        if start_date:
-            params["startTime"] = start_date
-        if end_date:
-            params["endTime"] = end_date
+        if startTime:
+            params["startTime"] = startTime
+        if endTime:
+            params["endTime"] = endTime
         if order is not None:
             params["order"] = order
         if rankingType is not None:
@@ -539,13 +652,12 @@ class OriginalAPIClient:
             params["recordStatus"] = recordStatus
             
         try:
-            response = self.session.get(url, params=params, timeout=10)
+            response = self.session.get(url, params=params)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"获取领刀记录失败: {e}")
+        except requests.RequestException as e:
             return {
-                "code": 500,
+                "code": -1,
                 "msg": f"请求失败: {str(e)}",
                 "data": {
                     "current": 0,
@@ -567,20 +679,18 @@ class OriginalAPIClient:
                             startTime: Optional[str] = None) -> bytes:
         """
         导出领刀记录
-        接口地址: /qw/knife/web/from/mes/record/exportLendRecord
-        请求方式: GET
         
-        参数:
+        Args:
             endTime: 结束时间
             order: 顺序 0: 从大到小 1：从小到大
             rankingType: 0: 数量 1: 金额
             recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
             startTime: 开始时间
             
-        返回:
+        Returns:
             bytes: 导出的文件内容
         """
-        url = f"{self.base_url}/qw/knife/web/from/mes/record/exportLendRecord"
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportLendRecord")
         
         params = {}
         
@@ -597,102 +707,67 @@ class OriginalAPIClient:
             params["startTime"] = startTime
             
         try:
-            response = self.session.get(url, params=params, timeout=10)
+            response = self.session.get(url, params=params)
             response.raise_for_status()
             return response.content
-        except requests.exceptions.RequestException as e:
-            logger.error(f"导出领刀记录失败: {e}")
+        except requests.RequestException as e:
             raise Exception(f"导出失败: {str(e)}")
-    
-    def restock_cabinet(self, 
-                       cabinetCode: Optional[str] = None,
-                       itemDtoList: Optional[List[Dict[str, Any]]] = None,
-                       replenishDto: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+
+    # 告警预警API客户端
+    def list_alarm_warning(self,
+                          locSurplus: Optional[int] = None,
+                          alarmLevel: Optional[int] = None,
+                          deviceType: Optional[str] = None,
+                          cabinetCode: Optional[str] = None,
+                          brandName: Optional[str] = None,
+                          handleStatus: Optional[int] = None,
+                          current: Optional[int] = None,
+                          size: Optional[int] = None) -> Dict[str, Any]:
         """
-        刀柜补货
-        接口地址: /qw/knife/app/from/mes/cabinet/changeBan
-        请求方式: POST
+        获取告警预警列表
         
-        参数:
-            replenishDto: replenishDto 对象
+        Args:
+            locSurplus: 货道
+            alarmLevel: 预警等级
+            deviceType: 设备类型
             cabinetCode: 刀柜编码
-            itemDtoList: 补货信息列表
-        """
-        url = f"{self.base_url}/qw/knife/app/from/mes/cabinet/changeBan"
-        
-        # 构造请求数据
-        data = {}
-        if replenishDto is not None:
-            data["replenishDto"] = replenishDto
-        if cabinetCode is not None:
-            data["cabinetCode"] = cabinetCode
-        if itemDtoList is not None:
-            data["itemDtoList"] = itemDtoList
-            
-        try:
-            response = self.session.post(url, json=data, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"补货失败: {e}")
-            return {
-                "code": 500,
-                "msg": f"补货失败: {str(e)}",
-                "data": None,
-                "success": False,
-                "dataSuccess": False
-            }
-    
-    def get_replenish_records(self,
-                              current: Optional[int] = None,
-                              endTime: Optional[str] = None,
-                              order: Optional[int] = None,
-                              rankingType: Optional[int] = None,
-                              recordStatus: Optional[int] = None,
-                              size: Optional[int] = None,
-                              startTime: Optional[str] = None) -> Dict[str, Any]:
-        """
-        获取补货记录列表
-        接口地址: /qw/knife/web/from/mes/record/replenishList
-        请求方式: GET
-        
-        参数:
+            brandName: 品牌名称
+            handleStatus: 处理状态
             current: 当前页
-            endTime: 结束时间
-            order: 顺序 0: 从大到小 1：从小到大
-            rankingType: 0: 数量 1: 金额
-            recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
-            size: 每页的数量
-            startTime: 开始时间
+            size: 每页数量
+            
+        Returns:
+            Dict: API响应结果
         """
-        url = f"{self.base_url}/qw/knife/web/from/mes/record/replenishList"
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/list")
         
         params = {}
         
         # 添加可选参数
+        if locSurplus is not None:
+            params["locSurplus"] = locSurplus
+        if alarmLevel is not None:
+            params["alarmLevel"] = alarmLevel
+        if deviceType is not None:
+            params["deviceType"] = deviceType
+        if cabinetCode is not None:
+            params["cabinetCode"] = cabinetCode
+        if brandName is not None:
+            params["brandName"] = brandName
+        if handleStatus is not None:
+            params["handleStatus"] = handleStatus
         if current is not None:
             params["current"] = current
-        if endTime is not None:
-            params["endTime"] = endTime
-        if order is not None:
-            params["order"] = order
-        if rankingType is not None:
-            params["rankingType"] = rankingType
-        if recordStatus is not None:
-            params["recordStatus"] = recordStatus
         if size is not None:
             params["size"] = size
-        if startTime is not None:
-            params["startTime"] = startTime
             
         try:
-            response = self.session.get(url, params=params, timeout=10)
+            response = self.session.get(url, params=params)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"获取补货记录失败: {e}")
+        except requests.RequestException as e:
             return {
-                "code": 500,
+                "code": -1,
                 "msg": f"请求失败: {str(e)}",
                 "data": {
                     "current": 0,
@@ -706,6 +781,184 @@ class OriginalAPIClient:
                 "success": False
             }
     
+    def get_alarm_statistics(self) -> Dict[str, Any]:
+        """
+        获取告警统计信息
+        
+        Returns:
+            Dict: API响应结果
+        """
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/statistics")
+        
+        try:
+            response = self.session.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            return {
+                "code": -1,
+                "msg": f"请求失败: {str(e)}",
+                "data": {
+                    "level1Count": 0,
+                    "level2Count": 0,
+                    "level3Count": 0,
+                    "unhandledCount": 0
+                },
+                "success": False
+            }
+    
+    def update_alarm_threshold(self, 
+                              locSurplus: int,
+                              alarmThreshold: int) -> Dict[str, Any]:
+        """
+        更新告警阈值
+        
+        Args:
+            locSurplus: 货道
+            alarmThreshold: 告警阈值
+            
+        Returns:
+            Dict: API响应结果
+        """
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/threshold")
+        
+        data = {
+            "locSurplus": locSurplus,
+            "alarmThreshold": alarmThreshold
+        }
+            
+        try:
+            response = self.session.post(url, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            return {
+                "code": -1,
+                "msg": f"请求失败: {str(e)}",
+                "data": None,
+                "success": False
+            }
+    
+    def handle_alarm_warning(self,
+                            id: int,
+                            handleStatus: int,
+                            handleRemark: Optional[str] = None) -> Dict[str, Any]:
+        """
+        处理告警预警
+        
+        Args:
+            id: 告警ID
+            handleStatus: 处理状态 (0: 未处理, 1: 已处理, 2: 已忽略)
+            handleRemark: 处理备注
+            
+        Returns:
+            Dict: API响应结果
+        """
+        url = urljoin(self.base_url, f"/qw/knife/web/from/mes/alarm/warning/{id}/handle")
+        
+        data = {
+            "handleStatus": handleStatus
+        }
+        
+        if handleRemark is not None:
+            data["handleRemark"] = handleRemark
+            
+        try:
+            response = self.session.post(url, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            return {
+                "code": -1,
+                "msg": f"请求失败: {str(e)}",
+                "data": None,
+                "success": False
+            }
+    
+    def batch_handle_alarm_warning(self,
+                                  ids: List[int],
+                                  handleStatus: int,
+                                  handleRemark: Optional[str] = None) -> Dict[str, Any]:
+        """
+        批量处理告警预警
+        
+        Args:
+            ids: 告警ID列表
+            handleStatus: 处理状态 (0: 未处理, 1: 已处理, 2: 已忽略)
+            handleRemark: 处理备注
+            
+        Returns:
+            Dict: API响应结果
+        """
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/batch/handle")
+        
+        data = {
+            "ids": ids,
+            "handleStatus": handleStatus
+        }
+        
+        if handleRemark is not None:
+            data["handleRemark"] = handleRemark
+            
+        try:
+            response = self.session.post(url, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            return {
+                "code": -1,
+                "msg": f"请求失败: {str(e)}",
+                "data": None,
+                "success": False
+            }
+    
+    def export_alarm_warning(self,
+                            locSurplus: Optional[int] = None,
+                            alarmLevel: Optional[int] = None,
+                            deviceType: Optional[str] = None,
+                            cabinetCode: Optional[str] = None,
+                            brandName: Optional[str] = None,
+                            handleStatus: Optional[int] = None) -> bytes:
+        """
+        导出告警预警
+        
+        Args:
+            locSurplus: 货道
+            alarmLevel: 预警等级
+            deviceType: 设备类型
+            cabinetCode: 刀柜编码
+            brandName: 品牌名称
+            handleStatus: 处理状态
+            
+        Returns:
+            bytes: 导出的文件内容
+        """
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/export")
+        
+        params = {}
+        
+        # 添加可选参数
+        if locSurplus is not None:
+            params["locSurplus"] = locSurplus
+        if alarmLevel is not None:
+            params["alarmLevel"] = alarmLevel
+        if deviceType is not None:
+            params["deviceType"] = deviceType
+        if cabinetCode is not None:
+            params["cabinetCode"] = cabinetCode
+        if brandName is not None:
+            params["brandName"] = brandName
+        if handleStatus is not None:
+            params["handleStatus"] = handleStatus
+            
+        try:
+            response = self.session.get(url, params=params)
+            response.raise_for_status()
+            return response.content
+        except requests.RequestException as e:
+            raise Exception(f"导出失败: {str(e)}")
+
+    # 公共暂存记录API客户端
     def get_storage_records(self,
                            current: Optional[int] = None,
                            endTime: Optional[str] = None,
@@ -716,10 +969,8 @@ class OriginalAPIClient:
                            startTime: Optional[str] = None) -> Dict[str, Any]:
         """
         获取公共暂存记录列表
-        接口地址: /qw/knife/web/from/mes/record/storageList
-        请求方式: GET
         
-        参数:
+        Args:
             current: 当前页
             endTime: 结束时间
             order: 顺序 0: 从大到小 1：从小到大
@@ -727,8 +978,11 @@ class OriginalAPIClient:
             recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
             size: 每页的数量
             startTime: 开始时间
+            
+        Returns:
+            Dict: API响应结果
         """
-        url = f"{self.base_url}/qw/knife/web/from/mes/record/storageList"
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/storageList")
         
         params = {}
         
@@ -749,13 +1003,12 @@ class OriginalAPIClient:
             params["startTime"] = startTime
             
         try:
-            response = self.session.get(url, params=params, timeout=10)
+            response = self.session.get(url, params=params)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"获取公共暂存记录失败: {e}")
+        except requests.RequestException as e:
             return {
-                "code": 500,
+                "code": -1,
                 "msg": f"请求失败: {str(e)}",
                 "data": {
                     "current": 0,
@@ -769,92 +1022,47 @@ class OriginalAPIClient:
                 "success": False
             }
     
-    def get_personal_storage(self, cabinetCode: Optional[str] = None) -> Dict[str, Any]:
+    def export_storage_records(self,
+                              endTime: Optional[str] = None,
+                              order: Optional[int] = None,
+                              rankingType: Optional[int] = None,
+                              recordStatus: Optional[int] = None,
+                              startTime: Optional[str] = None) -> bytes:
         """
-        获取个人暂存柜信息
-        接口地址: /qw/knife/app/from/mes/cabinet/personalStorage
-        请求方式: GET
+        导出公共暂存记录
         
-        参数:
-            cabinetCode: 刀柜编码
+        Args:
+            endTime: 结束时间
+            order: 顺序 0: 从大到小 1：从小到大
+            rankingType: 0: 数量 1: 金额
+            recordStatus: 0: 取刀 1: 还刀 2: 收刀 3: 暂存 4: 完成 5：违规还刀
+            startTime: 开始时间
+            
+        Returns:
+            bytes: 导出的文件内容
         """
-        url = f"{self.base_url}/qw/knife/app/from/mes/cabinet/personalStorage"
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportStorageRecord")
         
         params = {}
-        if cabinetCode is not None:
-            params["cabinetCode"] = cabinetCode
+        
+        # 添加可选参数
+        if endTime:
+            params["endTime"] = endTime
+        if order is not None:
+            params["order"] = order
+        if rankingType is not None:
+            params["rankingType"] = rankingType
+        if recordStatus is not None:
+            params["recordStatus"] = recordStatus
+        if startTime:
+            params["startTime"] = startTime
             
         try:
-            response = self.session.get(url, params=params, timeout=10)
+            response = self.session.get(url, params=params)
             response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"获取个人暂存柜信息失败: {e}")
-            return {
-                "code": 500,
-                "msg": f"请求失败: {str(e)}",
-                "data": None,
-                "success": False
-            }
-
-    def set_make_alarm(self, cabinetCode: Optional[str] = None, alarmValue: Optional[int] = None) -> Dict[str, Any]:
-        """
-        设置取刀柜告警值
-        接口地址: /qw/knife/web/from/mes/cabinet/makeAlarm
-        请求方式: GET
-        
-        参数:
-            cabinetCode: 刀柜编码
-            alarmValue: 告警值
-        """
-        url = f"{self.base_url}/qw/knife/web/from/mes/cabinet/makeAlarm"
-        
-        params = {}
-        if cabinetCode is not None:
-            params["cabinetCode"] = cabinetCode
-        if alarmValue is not None:
-            params["alarmValue"] = alarmValue
-            
-        try:
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"设置告警值失败: {e}")
-            return {
-                "code": 500,
-                "msg": f"请求失败: {str(e)}",
-                "data": False,
-                "success": False
-            }
-    
-    def get_make_alarm(self, cabinetCode: Optional[str] = None) -> Dict[str, Any]:
-        """
-        获取取刀柜告警值
-        接口地址: /qw/knife/web/from/mes/cabinet/getMakeAlarm
-        请求方式: GET
-        
-        参数:
-            cabinetCode: 刀柜编码
-        """
-        url = f"{self.base_url}/qw/knife/web/from/mes/cabinet/getMakeAlarm"
-        
-        params = {}
-        if cabinetCode is not None:
-            params["cabinetCode"] = cabinetCode
-            
-        try:
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"获取告警值失败: {e}")
-            return {
-                "code": 500,
-                "msg": f"请求失败: {str(e)}",
-                "data": None,
-                "success": False
-            }
+            return response.content
+        except requests.RequestException as e:
+            raise Exception(f"导出失败: {str(e)}")
 
 
 # 初始化API客户端
