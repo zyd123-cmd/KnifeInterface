@@ -1539,7 +1539,7 @@ class TeamLeaderAPIClient:
                     - size: 每页记录数
                     - total: 总记录数
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/replenishList/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/replenishList")
 
         params = {}
 
@@ -1623,7 +1623,7 @@ class TeamLeaderAPIClient:
                 - tenantId: 租户ID
                 - isDeleted: 是否已删除
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportReplenishRecord/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportReplenishRecord")
 
         params = {}
 
@@ -1674,7 +1674,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/lendList/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/lendList")
 
         params = {
             "current": current,
@@ -1736,7 +1736,7 @@ class TeamLeaderAPIClient:
         Returns:
             bytes: 导出的文件内容
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportLendRecord/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportLendRecord")
 
         params = {}
 
@@ -1785,7 +1785,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/list/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/list")
 
         params = {}
 
@@ -1834,7 +1834,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/statistics/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/statistics")
 
         try:
             response = self.session.get(url)
@@ -1866,7 +1866,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/threshold/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/threshold")
 
         data = {
             "locSurplus": locSurplus,
@@ -1900,7 +1900,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, f"/qw/knife/web/from/mes/alarm/warning/{id}/handle/teamleader")
+        url = urljoin(self.base_url, f"/qw/knife/web/from/mes/alarm/warning/{id}/handle")
 
         data = {
             "handleStatus": handleStatus
@@ -1936,7 +1936,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/batch/handle/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/batch/handle")
 
         data = {
             "ids": ids,
@@ -1979,7 +1979,7 @@ class TeamLeaderAPIClient:
         Returns:
             bytes: 导出的文件内容
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/export/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/alarm/warning/export")
 
         params = {}
 
@@ -2028,7 +2028,7 @@ class TeamLeaderAPIClient:
         Returns:
             Dict: API响应结果
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/storageList/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/storageList")
 
         params = {}
 
@@ -2087,7 +2087,7 @@ class TeamLeaderAPIClient:
         Returns:
             bytes: 导出的文件内容
         """
-        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportStorageRecord/teamleader")
+        url = urljoin(self.base_url, "/qw/knife/web/from/mes/record/exportStorageRecord")
 
         params = {}
 

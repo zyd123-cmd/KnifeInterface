@@ -28,12 +28,12 @@ class OriginalAPIClient:
 
         # 优先使用api_key参数
         if api_key:
-            self.session.headers.update({"Blade-Auth": f"Bearer {api_key}"})
+            self.session.headers.update({"Authorization": f"Bearer {api_key}"})
         # 其次尝试从文件读取token
         elif token_file or os.path.exists("token.txt"):
             token = self._load_token_from_file(token_file or "token.txt")
             if token:
-                self.session.headers.update({"Blade-Auth": f"Bearer {token}"})
+                self.session.headers.update({"Authorization": f"Bearer {token}"})
                 logger.info("已从文件加载Token")
             else:
                 logger.warning("无法加载Token，将使用无认证模式")
@@ -78,7 +78,7 @@ class OriginalAPIClient:
         参数：
             token: 新的Token字符串
         """
-        self.session.headers.update({"Blade-Auth": f"Bearer {token}"})
+        self.session.headers.update({"Authorization": f"Bearer {token}"})
         logger.info("Token已更新")
 
     def get_user_data(self, user_id: int) -> Dict[str, Any]:
@@ -489,7 +489,7 @@ class OriginalAPIClient:
             }
 
     # ==================== 排行接口方法 ====================
-    def _get_ranking_data(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    def get_ranking_data(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """通用排行数据获取方法"""
         try:
             # 过滤None值参数
@@ -560,18 +560,18 @@ class OriginalAPIClient:
     def get_device_ranking(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         设备用刀排行
-        接口地址: /ou/knife/web/from/ms/statistics/chartsDeviceSanking
+        接口地址: /qw/knife/web/from/ms/statistics/chartsDeviceSanking
         rankingType: 0.批量 1 查错
         """
         try:
             # 构建查询参数，过滤掉None值
             query_params = {k: v for k, v in params.items() if v is not None}
 
-            logger.info(f"调用设备用刀排行接口: {self.base_url}/ou/knife/web/from/ms/statistics/chartsDeviceSanking")
+            logger.info(f"调用设备用刀排行接口: {self.base_url}/qw/knife/web/from/ms/statistics/chartsDeviceSanking")
             logger.info(f"请求参数: {query_params}")
 
             response = self.session.get(
-                f"{self.base_url}/ou/knife/web/from/ms/statistics/chartsDeviceSanking",
+                f"{self.base_url}/qw/knife/web/from/ms/statistics/chartsDeviceSanking",
                 params=query_params,
                 timeout=10
             )
@@ -671,18 +671,18 @@ class OriginalAPIClient:
     def get_error_return_ranking(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         异常还刀排行
-        接口地址: /ou/knife/web/from/news/statsstics/dhatsErrorBorrow
+        接口地址: /qw/knife/web/from/news/statsstics/dhatsErrorBorrow
         rankingType: 0:批量 1:金额
         """
         try:
             # 构建查询参数，过滤掉None值
             query_params = {k: v for k, v in params.items() if v is not None}
 
-            logger.info(f"调用异常还刀排行接口: {self.base_url}/ou/knife/web/from/news/statsstics/dhatsErrorBorrow")
+            logger.info(f"调用异常还刀排行接口: {self.base_url}/qw/knife/web/from/news/statsstics/dhatsErrorBorrow")
             logger.info(f"请求参数: {query_params}")
 
             response = self.session.get(
-                f"{self.base_url}/ou/knife/web/from/news/statsstics/dhatsErrorBorrow",
+                f"{self.base_url}/qw/knife/web/from/news/statsstics/dhatsErrorBorrow",
                 params=query_params,
                 timeout=10
             )

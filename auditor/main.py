@@ -98,7 +98,7 @@ app = FastAPI(
 )
 
 # 包含路由
-app.include_router(auditor_router, prefix="/api/v1/auditor")
+app.include_router(auditor_router, prefix="/api/v1")
 
 # 根路径路由
 @app.get("/", tags=["系统接口"], summary="服务根路径")

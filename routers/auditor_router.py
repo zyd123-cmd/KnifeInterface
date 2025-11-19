@@ -30,8 +30,11 @@ from auditor.schemas.data_schemas import (
     ExportStorageRecordRequest
 )
 
-router = APIRouter()
-
+router = APIRouter(
+    prefix="/auditor",
+    tags=["Auditor-审计员"],
+    responses={404: {"description": "Not found"}}
+)
 
 # 测试接口
 @router.get("/test", tags=["测试"])
