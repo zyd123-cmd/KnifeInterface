@@ -247,12 +247,22 @@ async def get_charts_lend_by_year():
     try:
         # 调用API客户端方法获取数据
         result = api_client.get_charts_lend_by_year()
+        # 检查API客户端返回的错误
+        if result.get("code") != 200 or not result.get("success"):
+            logger.warning(f"上游服务返回错误: {result.get('msg')}")
+            # 仍然返回结构化的错误响应
+            return result
         return result
     except Exception as e:
         logger.error(f"获取全年取刀数量统计失败: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"获取全年取刀数量统计失败: {str(e)}")
-
+        # 返回结构化的错误响应
+        return {
+            "code": 500,
+            "msg": f"系统内部错误: {str(e)}",
+            "success": False,
+            "data": None
+        }
 
 @router.get("/charts-lend-price-by-year", response_model=ChartsResponse, tags=["统计图表"])
 async def get_charts_lend_price_by_year():
@@ -295,12 +305,23 @@ async def get_charts_lend_price_by_year():
     try:
         # 调用API客户端方法获取数据
         result = api_client.get_charts_lend_price_by_year()
+        # 检查API客户端返回的错误
+        if result.get("code") != 200 or not result.get("success"):
+            logger.warning(f"上游服务返回错误: {result.get('msg')}")
+            # 仍然返回结构化的错误响应
+            return result
+
         return result
     except Exception as e:
         logger.error(f"获取全年取刀金额统计失败: {str(e)}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"获取全年取刀金额统计失败: {str(e)}")
-
+        # 返回结构化的错误响应
+        return {
+            "code": 500,
+            "msg": f"系统内部错误: {str(e)}",
+            "success": False,
+            "data": None
+        }
 
 @router.get("/charts-accumulated", response_model=ChartsResponse, tags=["统计图表"])
 async def get_charts_accumulated():

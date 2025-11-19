@@ -232,6 +232,14 @@ class OriginalAPIClient:
                 "success": False,
                 "data": None
             }
+        except Exception as e:
+            logger.error(f"处理全年取刀数量统计数据时发生错误: {e}")
+            return {
+                "code": 503,
+                "msg": f"数据处理错误: {str(e)}",
+                "success": False,
+                "data": None
+            }
 
     def get_charts_lend_price_by_year(self) -> Dict[str, Any]:
         """
@@ -268,6 +276,14 @@ class OriginalAPIClient:
             return {
                 "code": 500,
                 "msg": f"调用外部接口失败: {str(e)}",
+                "success": False,
+                "data": None
+            }
+        except Exception as e:
+            logger.error(f"处理全年取刀金额统计数据时发生错误: {e}")
+            return {
+                "code": 503,
+                "msg": f"数据处理错误: {str(e)}",
                 "success": False,
                 "data": None
             }

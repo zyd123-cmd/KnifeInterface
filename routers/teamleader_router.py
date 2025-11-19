@@ -3,7 +3,9 @@ from typing import Optional, List
 import sys
 import os
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 # 将项目根目录添加到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -43,7 +45,11 @@ from teamleader.schemas.data_schemas import (
     TotalStockQueryParams,
     TotalStockResponse,
     StockLocationDetailResponse,
-    WasteKnifeRecycleResponse
+    WasteKnifeRecycleResponse,
+    # 新增批量创建刀具耗材请求模型
+    BatchCreateCutterRequest,
+    # 新增批量创建刀具耗材响应模型
+    BatchCreateCutterResponse,
 )
 from teamleader.services.api_client import TeamLeaderAPIClient
 from config.config import settings
@@ -1985,3 +1991,86 @@ async def export_storage_records(
             }, ensure_ascii=False),
             media_type="application/json"
         )
+
+
+# ==================== 批量上传刀具耗材接口 ====================
+
+@router.post(
+    "/cutters/batch",
+    response_model=BatchCreateCutterResponse,
+    summary="批量新增刀具耗材",
+    description="""
+    批量新增刀具耗材信息。
+
+    **请求体说明：**
+    - items: 刀具耗材列表，每个元素与单个新增接口结构相同
+    - batchConfig: 批量配置（可选）
+        - stopOnError: 遇到错误是否停止（默认False）
+        - maxConcurrent: 最大并发数（默认3）
+
+    **返回说明：**
+    - 返回207状态码表示部分成功
+    - details字段包含每个项的处理结果
+
+    **使用示例：**
+    ```json
+    {
+        "items": [
+            {
+                "brandName": "品牌A",
+                "cabinetName": "刀具柜A",
+                "cutterCode": "CUTTER001",
+                "price": 100.0,
+                "createUser": 1
+            },
+            {
+                "brandName": "品牌B",
+                "cabinetName": "刀具柜B", 
+                "cutterCode": "CUTTER002",
+                "price": 150.0,
+                "createUser": 1
+            }
+        ],
+        "batchConfig": {
+            "stopOnError": false,
+            "maxConcurrent": 5
+        }
+    }
+    ```
+    """
+)
+async def batch_create_cutters(request: BatchCreateCutterRequest):
+    """
+    批量新增刀具耗材接口
+    """
+    # 验证数据
+    if not request.items:
+        raise HTTPException(status_code=400, detail="items不能为空")
+
+    if len(request.items) > 100:  # 限制批量上传数量
+        raise HTTPException(status_code=400, detail="单次批量上传不能超过100个")
+
+    # 验证每个项的价格
+    for i, item in enumerate(request.items):
+        if item.price <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"第{i + 1}个项的价格必须大于0"
+            )
+
+    try:
+        # 转换为字典列表
+        items_data = [item.model_dump() for item in request.items]
+
+        # 调用批量上传方法
+        result = api_client.batch_create_cutters(
+            items_data,
+            request.batchConfig
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"批量上传刀具耗材失败: {e}")
+        raise HTTPException(status_code=500, detail=f"批量上传失败: {str(e)}")
+

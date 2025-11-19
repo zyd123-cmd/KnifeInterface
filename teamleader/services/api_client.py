@@ -2110,7 +2110,138 @@ class TeamLeaderAPIClient:
         except requests.RequestException as e:
             raise Exception(f"导出失败: {str(e)}")
 
+    # ==================== 刀具耗材批量上传方法 ====================
+    # ==================== 批量上传刀具耗材方法 ====================
 
+    def batch_create_cutters(self, items: List[Dict[str, Any]],
+                             batch_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        批量新增刀具耗材
+
+        参数：
+            items: 刀具耗材数据列表
+            batch_config: 批量配置
+                - stop_on_error: 遇到错误是否停止（默认False）
+                - max_concurrent: 最大并发数（默认3）
+
+        返回：
+            批量操作结果
+        """
+        if batch_config is None:
+            batch_config = {}
+
+        stop_on_error = batch_config.get('stopOnError', False)
+        max_concurrent = batch_config.get('maxConcurrent', 3)
+
+        results = []
+        success_count = 0
+        error_count = 0
+
+        logger.info(f"开始批量上传刀具耗材，总数: {len(items)}, 最大并发: {max_concurrent}")
+
+        # 使用线程池控制并发数
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def process_single_item(index: int, item_data: Dict[str, Any]):
+            try:
+                # 验证必填字段
+                required_fields = ['brandName', 'cabinetName', 'cutterCode', 'price', 'createUser']
+                for field in required_fields:
+                    if not item_data.get(field):
+                        raise ValueError(f"缺少必填字段: {field}")
+
+                # 验证价格
+                if item_data.get('price', 0) <= 0:
+                    raise ValueError("单价必须大于0")
+
+                # 调用单个新增接口
+                result = self.create_cutter(item_data)
+
+                if result.get('success'):
+                    return {
+                        "status": "success",
+                        "index": index,
+                        "cutterCode": item_data.get('cutterCode', ''),
+                        "data": result.get('data'),
+                        "message": result.get('msg', '成功')
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "index": index,
+                        "cutterCode": item_data.get('cutterCode', ''),
+                        "error": result.get('msg', '新增失败'),
+                        "data": None
+                    }
+
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "index": index,
+                    "cutterCode": item_data.get('cutterCode', ''),
+                    "error": str(e),
+                    "data": None
+                }
+
+        # 使用线程池处理批量任务
+        with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+            # 提交所有任务
+            future_to_index = {
+                executor.submit(process_single_item, i, item): i
+                for i, item in enumerate(items)
+            }
+
+            # 处理完成的任务
+            for future in as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    result = future.result()
+                    results.append(result)
+
+                    if result['status'] == 'success':
+                        success_count += 1
+                        logger.info(f"第{index + 1}个刀具耗材新增成功: {result['cutterCode']}")
+                    else:
+                        error_count += 1
+                        logger.error(f"第{index + 1}个刀具耗材新增失败: {result['error']}")
+
+                        # 如果配置了遇到错误停止，取消剩余任务
+                        if stop_on_error:
+                            logger.info(f"遇到错误，停止批量上传")
+                            # 取消所有未完成的任务
+                            for f in future_to_index:
+                                if not f.done():
+                                    f.cancel()
+                            break
+
+                except Exception as e:
+                    error_result = {
+                        "status": "error",
+                        "index": index,
+                        "cutterCode": items[index].get('cutterCode', ''),
+                        "error": f"处理异常: {str(e)}",
+                        "data": None
+                    }
+                    results.append(error_result)
+                    error_count += 1
+                    logger.error(f"第{index + 1}个刀具耗材处理异常: {str(e)}")
+
+        # 按索引排序结果
+        results.sort(key=lambda x: x['index'])
+
+        # 构建最终响应
+        overall_success = error_count == 0
+
+        return {
+            "code": 200 if overall_success else 207,  # 207表示部分成功
+            "msg": f"批量上传完成，成功{success_count}个，失败{error_count}个",
+            "success": overall_success,
+            "data": None,
+            "total": len(items),
+            "success_count": success_count,
+            "error_count": error_count,
+            "details": results
+        }
 # 初始化API客户端
 # 使用配置文件的设置
 try:

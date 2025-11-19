@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List, Union, Any
+from typing import Optional, List, Union, Any, Dict
 from datetime import datetime
 
 
@@ -1037,3 +1037,63 @@ class AlarmStatisticsResponse(BaseModel):
     data: AlarmStatistics
     msg: str
     success: bool
+
+
+# ==================== 批量上传刀具耗材相关模型 ====================
+
+# 批量上传请求模型
+class BatchCreateCutterRequest(BaseModel):
+    """批量新增刀具耗材请求"""
+    items: List[CreateCutterRequest]  # 刀具耗材列表
+    batchConfig: Optional[Dict[str, Any]] = None  # 批量配置（可选）
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "items": [
+                    {
+                        "brandName": "品牌A",
+                        "cabinetName": "刀具柜A",
+                        "cutterCode": "CODE001",
+                        "price": 100.0,
+                        "createUser": 1
+                    },
+                    {
+                        "brandName": "品牌B",
+                        "cabinetName": "刀具柜B",
+                        "cutterCode": "CODE002",
+                        "price": 150.0,
+                        "createUser": 1
+                    }
+                ],
+                "batchConfig": {
+                    "stopOnError": False,  # 遇到错误是否停止
+                    "maxConcurrent": 5  # 最大并发数
+                }
+            }
+        }
+
+
+# 批量上传响应项模型
+class BatchCutterItemResponse(BaseModel):
+    """批量上传单个项响应"""
+    status: str  # success/error
+    index: int  # 项索引
+    cutterCode: str  # 刀具型号
+    data: Optional[Dict[str, Any]] = None  # 成功时返回的数据
+    error: Optional[str] = None  # 错误信息
+
+
+# 批量上传响应模型
+class BatchCreateCutterResponse(BaseModel):
+    """批量新增刀具耗材响应"""
+    code: int
+    msg: str
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+
+    # 批量操作详情
+    total: int  # 总数量
+    success_count: int  # 成功数量
+    error_count: int  # 失败数量
+    details: List[BatchCutterItemResponse]  # 详细结果
