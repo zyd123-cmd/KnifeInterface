@@ -28,12 +28,12 @@ class OriginalAPIClient:
 
         # 优先使用api_key参数
         if api_key:
-            self.session.headers.update({"Blade-Auth": f"Bearer {api_key}"})
+            self.session.headers.update({"Authorization": f"Bearer {api_key}"})
         # 其次尝试从文件读取token
         elif token_file or os.path.exists("token.txt"):
             token = self._load_token_from_file(token_file or "token.txt")
             if token:
-                self.session.headers.update({"Blade-Auth": f"Bearer {token}"})
+                self.session.headers.update({"Authorization": f"Bearer {token}"})
                 logger.info("已从文件加载Token")
             else:
                 logger.warning("无法加载Token，将使用无认证模式")
@@ -78,7 +78,7 @@ class OriginalAPIClient:
         参数：
             token: 新的Token字符串
         """
-        self.session.headers.update({"Blade-Auth": f"Bearer {token}"})
+        self.session.headers.update({"Authorization": f"Bearer {token}"})
         logger.info("Token已更新")
 
     def get_user_data(self, user_id: int) -> Dict[str, Any]:
@@ -489,89 +489,22 @@ class OriginalAPIClient:
             }
 
     # ==================== 排行接口方法 ====================
-    def _get_ranking_data(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """通用排行数据获取方法"""
-        try:
-            # 过滤None值参数
-            query_params = {k: v for k, v in params.items() if v is not None}
-
-            logger.info(f"调用外部API: {self.base_url}{endpoint}")
-            logger.info(f"请求参数: {query_params}")
-
-            response = self.session.get(
-                f"{self.base_url}{endpoint}",
-                params=query_params,
-                timeout=10
-            )
-            response.raise_for_status()
-
-            result = response.json()
-            logger.info(f"外部API响应: {result}")
-            return result
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"获取排行数据失败 {endpoint}: {e}")
-            logger.info("由于外部API连接失败，返回模拟数据")
-            # 返回模拟数据用于测试
-            return self._get_mock_ranking_data(endpoint, params)
-
-    def _get_mock_ranking_data(self, endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        生成模拟排行数据用于测试
-        当外部API不可用时提供基础数据
-        """
-        # 基础响应结构
-        mock_data = {
-            "code": 200,
-            "msg": "模拟数据（外部API不可用）",
-            "success": True,
-            "data": {
-                "titleList": [],
-                "dataList": []
-            }
-        }
-
-        # 根据不同的端点提供不同的模拟数据
-        if "chartsDeviceSanking" in endpoint:
-            # 设备用刀排行模拟数据
-            mock_data["data"]["titleList"] = ["设备A", "设备B", "设备C", "设备D", "设备E"]
-            mock_data["data"]["dataList"] = [120, 95, 80, 65, 50]
-        elif "charts@tuttenbanking" in endpoint:
-            # 刀具型号排行模拟数据
-            mock_data["data"]["titleList"] = ["型号A", "型号B", "型号C", "型号D", "型号E"]
-            mock_data["data"]["dataList"] = [1500, 1200, 900, 750, 600]
-        elif "chartslandHunting" in endpoint:
-            # 员工领刀排行模拟数据
-            mock_data["data"]["titleList"] = ["员工A", "员工B", "员工C", "员工D", "员工E"]
-            mock_data["data"]["dataList"] = [45, 38, 32, 28, 25]
-        elif "dhatsErrorBorrow" in endpoint:
-            # 异常还刀排行模拟数据
-            mock_data["data"]["titleList"] = ["异常类型A", "异常类型B", "异常类型C", "异常类型D"]
-            mock_data["data"]["dataList"] = [12, 8, 5, 3]
-        else:
-            # 默认模拟数据
-            mock_data["data"]["titleList"] = ["项目1", "项目2", "项目3", "项目4", "项目5"]
-            mock_data["data"]["dataList"] = [100, 80, 60, 40, 20]
-
-        return mock_data
-    # ==================== 排行接口方法 ====================
-    # 这些是新增的排行接口，在合并版本中缺失
 
     def get_device_ranking(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         设备用刀排行
-        接口地址: /ou/knife/web/from/ms/statistics/chartsDeviceSanking
+        接口地址: /qw/knife/web/from/mes/statistics/chartsDeviceRanking
         rankingType: 0.批量 1 查错
         """
         try:
             # 构建查询参数，过滤掉None值
             query_params = {k: v for k, v in params.items() if v is not None}
 
-            logger.info(f"调用设备用刀排行接口: {self.base_url}/ou/knife/web/from/ms/statistics/chartsDeviceSanking")
+            logger.info(f"调用设备用刀排行接口: {self.base_url}/qw/knife/web/from/mes/statistics/chartsDeviceRanking")
             logger.info(f"请求参数: {query_params}")
 
             response = self.session.get(
-                f"{self.base_url}/ou/knife/web/from/ms/statistics/chartsDeviceSanking",
+                f"{self.base_url}/qw/knife/web/from/mes/statistics/chartsDeviceRanking",
                 params=query_params,
                 timeout=10
             )
@@ -583,32 +516,29 @@ class OriginalAPIClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"获取设备用刀排行失败: {e}")
-            # 返回模拟数据用于测试
+            # 移除模拟数据，返回错误响应
             return {
-                "code": 200,
-                "msg": "模拟数据（外部API不可用）",
-                "success": True,
-                "data": {
-                    "titleList": ["设备A", "设备B", "设备C", "设备D", "设备E"],
-                    "dataList": [120, 95, 80, 65, 50]
-                }
+                "code": 500,
+                "msg": f"调用外部接口失败: {str(e)}",
+                "success": False,
+                "data": None
             }
 
     def get_knife_model_ranking(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         刀具型号排行
-        接口地址: /api/mifc/web/from/me/statistics/charts@tuttenbanking
+        接口地址: /qw/knife/web/from/mes/statistics/chartsCutterRanking
         rankingType: 0:数量 1:金额
         """
         try:
             # 构建查询参数，过滤掉None值
             query_params = {k: v for k, v in params.items() if v is not None}
 
-            logger.info(f"调用刀具型号排行接口: {self.base_url}/api/mifc/web/from/me/statistics/charts@tuttenbanking")
+            logger.info(f"调用刀具型号排行接口: {self.base_url}/qw/knife/web/from/mes/statistics/chartsCutterRanking")
             logger.info(f"请求参数: {query_params}")
 
             response = self.session.get(
-                f"{self.base_url}/api/mifc/web/from/me/statistics/charts@tuttenbanking",
+                f"{self.base_url}/qw/knife/web/from/mes/statistics/chartsCutterRanking",
                 params=query_params,
                 timeout=10
             )
@@ -620,32 +550,29 @@ class OriginalAPIClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"获取刀具型号排行失败: {e}")
-            # 返回模拟数据用于测试
+            # 移除模拟数据，返回错误响应
             return {
-                "code": 200,
-                "msg": "模拟数据（外部API不可用）",
-                "success": True,
-                "data": {
-                    "titleList": ["型号A", "型号B", "型号C", "型号D", "型号E"],
-                    "dataList": [1500, 1200, 900, 750, 600]
-                }
+                "code": 500,
+                "msg": f"调用外部接口失败: {str(e)}",
+                "success": False,
+                "data": None
             }
 
     def get_employee_ranking(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         员工领刀排行
-        接口地址: /go/kaife/web/from/mss/statistics/chartslandHunting
+        接口地址: /qw/knife/web/from/mes/statistics/chartsLendRanking
         rankingType: 0:批量下拉量 (根据文档推测含义)
         """
         try:
             # 构建查询参数，过滤掉None值
             query_params = {k: v for k, v in params.items() if v is not None}
 
-            logger.info(f"调用员工领刀排行接口: {self.base_url}/go/kaife/web/from/mss/statistics/chartslandHunting")
+            logger.info(f"调用员工领刀排行接口: {self.base_url}/qw/knife/web/from/mes/statistics/chartsLendRanking")
             logger.info(f"请求参数: {query_params}")
 
             response = self.session.get(
-                f"{self.base_url}/go/kaife/web/from/mss/statistics/chartslandHunting",
+                f"{self.base_url}/qw/knife/web/from/mes/statistics/chartsLendRanking",
                 params=query_params,
                 timeout=10
             )
@@ -657,32 +584,29 @@ class OriginalAPIClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"获取员工领刀排行失败: {e}")
-            # 返回模拟数据用于测试
+            # 移除模拟数据，返回错误响应
             return {
-                "code": 200,
-                "msg": "模拟数据（外部API不可用）",
-                "success": True,
-                "data": {
-                    "titleList": ["员工A", "员工B", "员工C", "员工D", "员工E"],
-                    "dataList": [45, 38, 32, 28, 25]
-                }
+                "code": 500,
+                "msg": f"调用外部接口失败: {str(e)}",
+                "success": False,
+                "data": None
             }
 
     def get_error_return_ranking(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         异常还刀排行
-        接口地址: /ou/knife/web/from/news/statsstics/dhatsErrorBorrow
+        接口地址: /qw/knife/web/from/mes/statistics/chartsErrorBorrow
         rankingType: 0:批量 1:金额
         """
         try:
             # 构建查询参数，过滤掉None值
             query_params = {k: v for k, v in params.items() if v is not None}
 
-            logger.info(f"调用异常还刀排行接口: {self.base_url}/ou/knife/web/from/news/statsstics/dhatsErrorBorrow")
+            logger.info(f"调用异常还刀排行接口: {self.base_url}/qw/knife/web/from/mes/statistics/chartsErrorBorrow")
             logger.info(f"请求参数: {query_params}")
 
             response = self.session.get(
-                f"{self.base_url}/ou/knife/web/from/news/statsstics/dhatsErrorBorrow",
+                f"{self.base_url}/qw/knife/web/from/mes/statistics/chartsErrorBorrow",
                 params=query_params,
                 timeout=10
             )
@@ -694,17 +618,13 @@ class OriginalAPIClient:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"获取异常还刀排行失败: {e}")
-            # 返回模拟数据用于测试
+            # 移除模拟数据，返回错误响应
             return {
-                "code": 200,
-                "msg": "模拟数据（外部API不可用）",
-                "success": True,
-                "data": {
-                    "titleList": ["异常类型A", "异常类型B", "异常类型C", "异常类型D"],
-                    "dataList": [12, 8, 5, 3]
-                }
+                "code": 500,
+                "msg": f"调用外部接口失败: {str(e)}",
+                "success": False,
+                "data": None
             }
-
     # ==================== 系统记录相关接口 ====================
 
     # 合并自 auditor_record 模块的系统记录接口

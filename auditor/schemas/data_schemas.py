@@ -249,26 +249,27 @@ class RankingBaseResponse(BaseModel):
     code: int
     msg: str
     success: bool
+    data: Optional[dict] = None  # 修复：允许data为None或字典
 
 
 class DeviceRankingResponse(RankingBaseResponse):
     """设备用刀排行响应"""
-    data: ExtendedChartsData
+    pass
 
 
 class KnifeModelRankingResponse(RankingBaseResponse):
     """刀具型号排行响应"""
-    data: ExtendedChartsData
+    pass
 
 
 class EmployeeRankingResponse(RankingBaseResponse):
     """员工领刀排行响应"""
-    data: ExtendedChartsData
+    pass
 
 
 class ErrorReturnRankingResponse(RankingBaseResponse):
     """异常还刀排行响应"""
-    data: ExtendedChartsData
+    pass
 
 
 # ==================== 系统记录相关模型 ====================
